@@ -1,11 +1,8 @@
 import Coinductive
+import ITree.Effect
 
 namespace ITree
 open Coinductive Lean.Order
-
-structure Effect : Type (u + 1) where
-  I : Type u
-  O : I → Type u
 
 inductive ITreeF (E : Effect.{u}) (R : Type v) (ITree : Type w) : Type (max u v w) where
   | ret (r : R)
@@ -43,6 +40,10 @@ def ITree.tau (t : ITree E R) : ITree E R := ITree.fold (.tau t)
 def ITree.vis (i : E.I) (k : E.O i → ITree E R) : ITree E R := ITree.fold (.vis i k)
 def ITree.unfold (t : ITree E R) : ITreeF E R (ITree E R) := CoInd.unfold _ t
 
+/- Ideally everything above this would be automatically generated -/
+
+variable {E : Effect.{u}}
+
 def ITree.spin : ITree E R := cofix _ (ITreeF.tau) PUnit.unit
 
 instance : Inhabited (ITreeF E R PUnit) where default := .tau ⟨⟩
@@ -71,7 +72,8 @@ theorem vis_mono α [PartialOrder α] i (f : α → E.O i → ITree E R) :
     apply hf
     apply hle
 
-def ITree.bind {S} (t1 : ITree E R) (t2 : R → ITree E S) :=
+-- use Bind.bind instead
+private def ITree.bind {S} (t1 : ITree E R) (t2 : R → ITree E S) :=
   match t1.unfold with
   | .ret r => t2 r
   | .tau t => .tau (ITree.bind t t2)
@@ -79,7 +81,7 @@ def ITree.bind {S} (t1 : ITree E R) (t2 : R → ITree E S) :=
 partial_fixpoint
 
 @[partial_fixpoint_monotone]
-theorem bind_mono α {S} [PartialOrder α]
+theorem bind_mono {α} {S} [PartialOrder α]
   (f : α → ITree E R) (g : α → R → ITree E S) :
   monotone f →
   monotone g →
@@ -90,34 +92,70 @@ theorem bind_mono α {S} [PartialOrder α]
     -- TODO: Here we want to generalize vis_mono such that we can use it
     sorry
 
+instance : Monad (ITree.{u} E) where
+  pure := ITree.ret
+  bind := ITree.bind
+
+instance : LawfulMonad (ITree E) where
+  map_const := by simp [Functor.mapConst, Functor.map]
+  id_map := by simp [Functor.map]; sorry
+  seqLeft_eq := by
+    simp [Functor.map, SeqLeft.seqLeft, Seq.seq];
+    unfold Function.const; sorry
+  seqRight_eq := by
+    simp [Functor.map, SeqRight.seqRight, Seq.seq]; sorry
+  pure_seq := by simp [pure, Seq.seq, Functor.map]; sorry
+  bind_pure_comp := by
+    intros
+    simp [Bind.bind, Functor.map, pure];
+    unfold Function.comp; rfl
+  bind_map := by simp [Bind.bind, Seq.seq, Functor.map]
+  pure_bind := by simp [pure, Bind.bind]; unfold ITree.bind; simp [ITree.ret, ITree.fold, ITree.unfold]
+  bind_assoc := by simp [Bind.bind]; sorry
+
+instance : MonoBind (ITree E) where
+  bind_mono_left := by
+    intro _ _ _ _ _ _
+    dsimp [Bind.bind]
+    apply bind_mono (λ x => x) <;> grind [monotone, PartialOrder.rel_refl]
+  bind_mono_right := by
+    intro _ _ a _ _ _
+    dsimp [Bind.bind]
+    apply bind_mono (λ x => a) (λ x => x)
+    · grind [monotone, PartialOrder.rel_refl]
+    · grind [monotone, PartialOrder.rel_refl]
+    · intro _; grind
+
+@[simp]
+theorem vis_bind i k (t : S → ITree E R) :
+  (.vis i k) >>= t = .vis i (λ o => k o >>= t) := by
+    simp [Bind.bind]
+    rw [ITree.bind]
+    simp [ITree.vis, ITree.fold, ITree.unfold]
+
+@[simp]
+theorem tau_bind t1 (t : S → ITree E R) :
+  t1.tau >>= t = .tau (t1 >>= t) := by
+    simp [Bind.bind]
+    rw [ITree.bind]
+    simp [ITree.tau, ITree.fold, ITree.unfold]
+
+def ITree.trigger (E₁ : Effect.{u}) {E₂ : Effect.{u}} [E₁ -< E₂] (i : E₁.I) : ITree.{u} E₂ (E₁.O i) :=
+  let ⟨i₂, f⟩ := (Subeffect.map i);
+  ITree.vis i₂ (λ x => return (f x))
+
 def ITree.iter {α β} (t : α → ITree E (α ⊕ β)) : α → ITree E β :=
-  λ a => ITree.bind (t a) λ
+  λ a => do
+    match ← (t a) with
     | .inl a => .iter t a
-    | .inr b => .ret b
+    | .inr b => return b
 partial_fixpoint
 
 def ITree.interp {F} (f : (i : E.I) → ITree F (E.O i)) : ITree E R → ITree F R :=
   ITree.iter λ t =>
     match t.unfold with
-    | .ret r => .ret (.inr r)
-    | .tau t => .ret (.inl t)
-    | .vis i k => ITree.bind (f i) (λ o => .ret (.inl (k o)))
-
-def f {E R} : ITree E R := f
-partial_fixpoint
-
-def spin2 {E R} : ITree E R := ITree.tau spin2
-partial_fixpoint
-
-example {E R} : @spin2 E R = spin2 := by unfold spin2; rfl
-
--- TODO: I did not expect this to work. I guess it works, but we cannot prove it monotone
-def ITree.test (t1 : ITree E R) : ITree E R :=
-  match t1.unfold with
-  | .ret r => .ret r
-  | .tau t => ITree.test t
-  | .vis i k => .vis i (λ o => ITree.test (k o))
-partial_fixpoint
-
+    | .ret r => return (.inr r)
+    | .tau t => return (.inl t)
+    | .vis i k => f i >>= λ o => return (.inl (k o))
 
 end ITree
