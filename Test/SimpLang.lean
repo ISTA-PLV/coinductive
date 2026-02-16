@@ -90,10 +90,7 @@ instance : Coe Int Val where
 instance : Coe Unit Val where
   coe _ := .lit $ .unit
 
-instance : Coe Val Exp where
-  coe v := .val v
-
-instance : OfNat Val n where
+instance {n} : OfNat Val n where
   ofNat := .lit $ .int n
 
 def Exp.substStr (x : String) (v : Val) (e : Exp) : Exp :=
