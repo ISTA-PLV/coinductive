@@ -364,3 +364,52 @@ instance {E E' GE GR σ₁ σ₂ σ'} (iso : Iso σ₁ σ₂) (eh : EHandler E G
   put_get := by simp
   get_put := by simp
   isIn := by grind [isoEH, hin.isIn]
+
+/- EHandler interp -/
+section interp
+variable {E₁ E₂ : Effect.{u}} (f : (i : E₁.I) → ITree E₂ (E₁.O i))
+
+def interpEH {σ} (eh : SEHandler E₂ σ) : SEHandler E₁ σ where
+  handle i s p := exec eh (f i) s λ r s' => ∃ v, r = pure v ∧ p v s'
+  handle_mono he h := by grind [exec.mono]
+
+theorem exec_interpEH {GE : Effect.{u}} GR σ σ₂ (ehf : SEHandler E₂ σ₂) i p s
+    {k : E₁.O i → ITree GE GR}
+    [E₁ -< GE] (eh : EHandler GE GE GR σ) [hin : InEH (interpEH f ehf).toEHandler eh] :
+      (exec ehf (f i) (hin.getState s) λ r s' => ∃ v, r = pure v ∧ exec eh (k v) (hin.putState s' s) p) →
+      exec eh (ITree.trigger E₁ i >>= k) s p := by
+  rintro he
+  apply exec.dup
+  apply exec.trigger (interpEH f ehf).toEHandler
+  simp_all [interpEH]
+
+def inl_ {E' : Effect.{u}} :
+  (i : (E₁ ⊕ₑ E').I) → ITree (E₂ ⊕ₑ E') ((E₁ ⊕ₑ E').O i)
+  | .inl x => ITree.interp (ITree.trigger E₂) (f x)
+  | .inr x => ITree.trigger E' x
+
+def wrapInterpEH {E GR σ} (eh : EHandler E (E₁ ⊕ₑ E) GR σ) : EHandler E (E₂ ⊕ₑ E) GR σ where
+  handle i s k p :=
+    ∃ k', k = (λ o => ITree.interp (inl_ f) (k' o)) ∧
+    eh.handle i s k' λ t s' => p (ITree.interp (inl_ f) t) s'
+  handle_mono he h := by
+    rcases he with ⟨_, rfl, _⟩
+    grind [eh.handle_mono]
+
+theorem exec_interp σ σ' E' GR (t : ITree (E₁ ⊕ₑ E') GR) p s
+  (ehf : SEHandler E₂ σ) (eh : EHandler E' (E₁ ⊕ₑ E') GR σ') :
+  (exec (ehf ⊕ₑₕ wrapInterpEH f eh) (ITree.interp (inl_ f) t) s p) ↔
+   exec ((interpEH f ehf).toEHandler ⊕ₑₕ eh) t s λ t' s' => p (ITree.interp (inl_ f) t') s' := by
+  constructor
+  · intro he
+    apply exec.coind _ λ t s => exec (ehf ⊕ₑₕ wrapInterpEH f eh) (ITree.interp (inl_ f) t) s p
+    rotate_left 1; grind
+    intro t s he
+    unfold exec at he
+    sorry
+    -- cases he
+    -- · apply exec.stop; grind
+    -- · sorry
+  · sorry
+
+end interp
