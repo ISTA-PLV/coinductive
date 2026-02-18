@@ -12,16 +12,10 @@ example s :
     apply exec.stop
     simp
 
-example tid tpool heap :
-  tid < tpool.length →
-  exec heaplangEH hl(let x := #1; x + #1).denote ⟨tid, tpool, heap⟩ λ t _ => t = return (.lit $ .int 2) := by
-    intro _
+example tp heap :
+  exec heaplangEH hl(let x := #1; x + #1).denote ⟨tp, heap⟩ λ t _ => t = return (.lit $ .int 2) := by
     simp [Exp.denote, Exp.isVal, Exp.subst, Exp.substStr, yieldAfter, Exp.yieldIfNotVal, Val.rec!, BinOp.denote, BinOp.evalInt, -bind_pure_comp]
     apply exec_yield_same
-    · simp [*]
-    simp [-bind_pure_comp]
     apply exec_yield_same
-    · simp [*]
-    simp [-bind_pure_comp]
     apply exec.stop
     simp

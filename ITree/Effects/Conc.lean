@@ -55,15 +55,46 @@ theorem yieldAfter_mono [concE -< E] α [PartialOrder α] (f : α → ITree E R)
   · apply hf
   · apply monotone_const
 
-instance concEH : EHandler concE GE GR (Nat × List (Option (ITree GE GR))) where
+structure ConcState GE GR where
+  curr : Nat
+  pool : List (Option (ITree GE GR))
+  curr_in_pool : curr < pool.length
+  curr_is_none : pool[curr] = none
+
+attribute [grind! .] ConcState.curr_in_pool
+
+def ConcState.add {GE GR} (s : ConcState GE GR) (t : ITree GE GR) : ConcState GE GR where
+  curr := s.curr
+  pool := s.pool ++ [some t]
+  curr_in_pool := by grind
+  curr_is_none := by grind [curr_is_none]
+
+def ConcState.yield {GE GR} (tp : List (Option (ITree GE GR))) (i : Nat) (h : i < tp.length) : ConcState GE GR where
+  curr := i
+  pool := tp.set i none
+  curr_in_pool := by grind
+  curr_is_none := by grind
+
+@[simp]
+theorem ConcState.yield_id {GE GR} (s : ConcState GE GR) t h :
+  yield (s.pool.set s.curr t) s.curr h = s := by
+  simp [yield]
+  congr
+  grind [List.set_getElem_self, curr_is_none]
+
+@[simp]
+def ConcState.next {GE GR} (tp : List (Option (ITree GE GR))) (C : ITree GE GR → ConcState GE GR → Prop) : Prop :=
+  ∃ i t, ∃ (h : i < tp.length), tp[i] = some t ∧ C t (yield tp i h)
+
+def concEH {GE GR} : EHandler concE GE GR (ConcState GE GR) where
   handle i s k p :=
     match i with
-    | .fork => p (k .parent) (s.1, s.2 ++ [some (k .child)])
+    | .fork => p (k .parent) (s.add (k .child))
     | .yield =>
-      let tp' := s.2.set s.1 (some (k ⟨⟩))
-      ∃ i' t', tp'[i']? = some (some t') ∧ p t' (i', tp'.set i' none)
+      let tp' := s.pool.set s.curr (some (k ⟨⟩))
+      ConcState.next tp' p
     | .kill =>
-      ∃ i' t', s.2[i']? = some (some t') ∧ p t' (i', s.2.set i' none)
+      ConcState.next s.pool p
   handle_mono := by
     intros i s k p q himp h; cases i
     all_goals simp at *; grind
@@ -72,30 +103,31 @@ theorem exec_yield_yielded {GE : Effect.{u}} {GR σ} (next : Nat)
     {k : PUnit → ITree GE GR} [concE -< GE]
     (eh : EHandler GE GE GR σ)
     [hin : InEH concEH eh] s p t :
-    let ss := hin.getState s; let tp' := ss.2.set ss.1 (k ⟨⟩);
-    tp'[next]? = some (some t) →
-    exec eh t (hin.putState ⟨next, tp'.set next none⟩ s) p →
+    let ss := hin.getState s;
+    let tp' := ss.pool.set ss.curr (k ⟨⟩);
+    (h : next < tp'.length) →
+    tp'[next] = some t →
+    exec eh t (hin.putState (ConcState.yield tp' next h) s) p →
     exec eh (yield >>= k) s p := by
   dsimp only
-  rintro htp he; simp [yield]
+  rintro h htp he; simp [yield]
   apply exec.dup
   apply exec.trigger concEH
   rw (occs := [1]) [concEH.eq_def]
   simp
   apply Exists.intro
   apply Exists.intro
+  apply Exists.intro
   constructor <;> assumption
+  grind
 
 theorem exec_yield_same {GE : Effect.{u}} {GR σ}
     {k : PUnit → ITree GE GR} [concE -< GE]
     (eh : EHandler GE GE GR σ)
     [hin : InEH concEH eh] s p :
-    let ss := hin.getState s;
-    ss.1 < ss.2.length →
-    exec eh (k ⟨⟩) (hin.putState ⟨ss.1, ss.2.set ss.1 none⟩ s) p →
+    exec eh (k ⟨⟩) s p →
     exec eh (yield >>= k) s p := by
-  dsimp only
-  rintro _ he
-  apply exec_yield_yielded ((InEH.getState concEH eh s).1)
-  · rw [List.getElem?_set_self]; assumption
+  rintro he
+  apply exec_yield_yielded ((InEH.getState concEH eh s).curr)
+  · rw [List.getElem_set_self]; grind
   simp [he]

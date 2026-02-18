@@ -196,14 +196,13 @@ def Val.injR! [failE -< E] : Val → ITree E Val
 abbrev heaplangE := concE ⊕ₑ heapE Loc Val ⊕ₑ failE ⊕ₑ demonicE (List Loc)
 
 structure HeaplangState (GE GR) where
-  tid : Nat
-  tpool : List (Option (ITree GE GR))
+  tp : ConcState GE GR
   heap : heapE.T Loc Val
 
 @[simp]
-def HeaplangStateIso GE GR : Iso ((Nat × List (Option (ITree GE GR))) × heapE.T Loc Val × PUnit × PUnit) (HeaplangState GE GR) where
-  toFun x := ⟨x.1.1, x.1.2, x.2.fst⟩
-  invFun x := ⟨⟨x.tid, x.tpool⟩, x.heap, ⟨⟩, ⟨⟩⟩
+def HeaplangStateIso GE GR : Iso (ConcState GE GR × heapE.T Loc Val × PUnit × PUnit) (HeaplangState GE GR) where
+  toFun x := ⟨x.1, x.2.fst⟩
+  invFun x := ⟨x.tp, x.heap, ⟨⟩, ⟨⟩⟩
   left_inv := by simp [Function.LeftInverse]
   right_inv := by simp [Function.RightInverse, Function.LeftInverse]
 
