@@ -67,3 +67,35 @@ instance concEH : EHandler concE GE GR (Nat × List (Option (ITree GE GR))) wher
   handle_mono := by
     intros i s k p q himp h; cases i
     all_goals simp at *; grind
+
+theorem exec_yield_yielded {GE : Effect.{u}} {GR σ} (next : Nat)
+    {k : PUnit → ITree GE GR} [concE -< GE]
+    (eh : EHandler GE GE GR σ)
+    [hin : InEH concEH eh] s p t :
+    let ss := hin.getState s; let tp' := ss.2.set ss.1 (k ⟨⟩);
+    tp'[next]? = some (some t) →
+    exec eh t (hin.putState ⟨next, tp'.set next none⟩ s) p →
+    exec eh (yield >>= k) s p := by
+  dsimp only
+  rintro htp he; simp [yield]
+  apply exec.dup
+  apply exec.trigger concEH
+  rw (occs := [1]) [concEH.eq_def]
+  simp
+  apply Exists.intro
+  apply Exists.intro
+  constructor <;> assumption
+
+theorem exec_yield_same {GE : Effect.{u}} {GR σ}
+    {k : PUnit → ITree GE GR} [concE -< GE]
+    (eh : EHandler GE GE GR σ)
+    [hin : InEH concEH eh] s p :
+    let ss := hin.getState s;
+    ss.1 < ss.2.length →
+    exec eh (k ⟨⟩) (hin.putState ⟨ss.1, ss.2.set ss.1 none⟩ s) p →
+    exec eh (yield >>= k) s p := by
+  dsimp only
+  rintro _ he
+  apply exec_yield_yielded ((InEH.getState concEH eh s).1)
+  · rw [List.getElem?_set_self]; assumption
+  simp [he]

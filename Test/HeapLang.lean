@@ -114,17 +114,17 @@ def Exp.isVal : Exp → Bool
   | .val _ => true
   | _ => false
 
-instance : Coe Nat Val where
-  coe n := .lit $ .int n
+instance : Coe Nat BaseLit where
+  coe n := .int n
 
-instance : Coe Int Val where
-  coe n := .lit $ .int n
+instance : Coe Int BaseLit where
+  coe n := .int n
 
-instance : Coe Unit Val where
-  coe _ := .lit $ .unit
+instance : Coe Unit BaseLit where
+  coe _ := .unit
 
-instance {n} : OfNat Val n where
-  ofNat := .lit $ .int n
+instance {n} : OfNat BaseLit n where
+  ofNat := .int n
 
 def Exp.substStr (x : String) (v : Val) (e : Exp) : Exp :=
   match e with
@@ -194,10 +194,25 @@ def Val.injR! [failE -< E] : Val → ITree E Val
   | x => fail s!"{reprStr x} is not InjR"
 
 abbrev heaplangE := concE ⊕ₑ heapE Loc Val ⊕ₑ failE ⊕ₑ demonicE (List Loc)
-def heaplangEH {GE GR} := concEH (GE:=GE) (GR:=GR) ⊕ₑₕ (heapEH Loc Val ⊕ₛₑₕ failEH ⊕ₛₑₕ demonicEH (List Loc)).toEHandler
 
-instance {GE GR GR'} : EHandlerBind (GE:=GE) (GR:=GR) (GR':=GR')
-  heaplangEH (failingEH ⊕ₑₕ (heapEH Loc Val ⊕ₛₑₕ failEH ⊕ₛₑₕ demonicEH (List Loc)).toEHandler) := inferInstanceAs (EHandlerBind (concEH ⊕ₑₕ _) _)
+structure HeaplangState (GE GR) where
+  tid : Nat
+  tpool : List (Option (ITree GE GR))
+  heap : heapE.T Loc Val
+
+@[simp]
+def HeaplangStateIso GE GR : Iso ((Nat × List (Option (ITree GE GR))) × heapE.T Loc Val × PUnit × PUnit) (HeaplangState GE GR) where
+  toFun x := ⟨x.1.1, x.1.2, x.2.fst⟩
+  invFun x := ⟨⟨x.tid, x.tpool⟩, x.heap, ⟨⟩, ⟨⟩⟩
+  left_inv := by simp [Function.LeftInverse]
+  right_inv := by simp [Function.RightInverse, Function.LeftInverse]
+
+abbrev heaplangEH {GE GR} : EHandler heaplangE GE GR (HeaplangState GE GR) :=
+  isoEH (HeaplangStateIso GE GR) (concEH (GE:=GE) (GR:=GR) ⊕ₑₕ (heapEH Loc Val ⊕ₛₑₕ failEH ⊕ₛₑₕ demonicEH (List Loc)).toEHandler)
+
+/- TODO: define EHandlerBind -/
+-- instance {GE GR GR'} : EHandlerBind (GE:=GE) (GR:=GR) (GR':=GR')
+  -- heaplangEH (failingEH ⊕ₑₕ (heapEH Loc Val ⊕ₛₑₕ failEH ⊕ₛₑₕ demonicEH (List Loc)).toEHandler) := inferInstanceAs (EHandlerBind (concEH ⊕ₑₕ _) _)
 
 def UnOp.denote (op : UnOp) (v : Val) : ITree heaplangE Val :=
   match op, v with
@@ -375,48 +390,226 @@ section Notation
 open Lean Lean.PrettyPrinter Elab Parser
 
 declare_syntax_cat hl_exp
--- declare_syntax_cat hl_val
+declare_syntax_cat hl_val
 
 syntax:max "hl(" hl_exp ")" : term
--- syntax:max "hl_val(" hl_val ")" : term
+syntax:max "hl_binder(" binderIdent ")" : term
+syntax:max "hl_val(" hl_val ")" : term
+syntax:max "(" hl_exp ")" : hl_exp
+syntax:max "v(" hl_val ")" : hl_exp
 syntax:max "{" term "}" : hl_exp
+syntax:max "{" term "}" : hl_val
+syntax:max ident : hl_val
 syntax:max "#" term:max : hl_exp
--- syntax:max "#" term:max : hl_val
+syntax:max "#" term:max : hl_val
+syntax:max ident : hl_exp
 syntax:65 hl_exp:66 " + " hl_exp:65 : hl_exp
+syntax:60 hl_exp:61 " = " hl_exp:60 : hl_exp
 
-macro_rules
-  | `(hl({$t})) => pure t
-  | `(hl($e1 + $e2)) => `(Exp.binop .plus hl($e1) hl($e2))
-  | `(hl(# $e)) => `(Exp.val $e)
-  -- | `(hl(# $e)) => `(Exp.val hl_val(#$e))
-  -- | `(hl_val(# $e)) => `(Val.lit $e)
-
-
--- @[app_unexpander Val.lit]
--- def unexpLit : Unexpander
-  -- | `($_ $arg) => `(hl_val(# $arg))
-  -- | _ => throw ()
-
--- @[app_unexpander Exp.val]
--- def unexpVal : Unexpander
---   | `($_ hl_val(# $arg)) => `(hl(# $arg))
---   | _ => throw ()
-
-@[app_unexpander Exp.val]
-def unexpVal : Unexpander
-  | `($_ $arg) => `(hl(# $arg))
-  | _ => throw ()
+syntax:100 hl_exp:100 ppSpace hl_exp:101 : hl_exp -- app
+syntax:10 "let " binderIdent " := " hl_exp:10 "; " hl_exp:1 : hl_exp
+syntax:5 hl_exp:6 "; " hl_exp:5 : hl_exp
+syntax:10 "λ " binderIdent+ ", " hl_exp:10 : hl_exp
+syntax:10 "λ " binderIdent+ ", " hl_exp:10 : hl_val
+syntax:10 "rec " binderIdent ppSpace binderIdent+ " := " hl_exp:10 : hl_exp
+syntax:10 "rec " binderIdent ppSpace binderIdent+ " := " hl_exp:10 : hl_val
 
 partial def unpackHLExp [Monad m] [MonadRef m] [MonadQuotation m] : Term → m (TSyntax `hl_exp)
   | `(hl($e)) => `(hl_exp|$e)
   | `($t) => `(hl_exp|{$t})
 
+partial def unpackHLVal [Monad m] [MonadRef m] [MonadQuotation m] : Term → m (TSyntax `hl_val)
+  | `(hl_val($e)) => `(hl_val|$e)
+  | `($t) => `(hl_val|{$t})
+
+partial def unpackHLBinder [Monad m] [MonadRef m] [MonadQuotation m] : Term → m (TSyntax `Lean.binderIdent)
+  | `(hl_binder($e)) => `(binderIdent|$e)
+-- TODO
+  | `($_) => panic! "unknown binder"
+
+macro_rules
+  | `(hl_binder(_)) => `(Binder.anon)
+  | `(hl_binder($i:ident)) => `(Binder.named $(Syntax.mkStrLit i.getId.toString))
+
+macro_rules
+  | `(hl_val($i:ident)) => pure i
+  | `(hl_val({$t})) => pure t
+  | `(hl_val(# $e)) => `(Val.lit $e)
+  | `(hl_val(rec $f $x := $e)) => do `(Val.rec_ hl_binder($f) hl_binder($x) hl($e))
+  | `(hl_val(rec $f $x $xs* := $e)) => do `(hl_val(rec $f $x := λ $xs*, $e))
+  | `(hl_val(λ $xs*, $e)) => do `(hl_val(rec _ $xs* := $e))
+
+macro_rules
+  | `(hl(($e))) => `(hl($e))
+  | `(hl({$t})) => pure t
+  | `(hl(v($e))) => `(Exp.val hl_val($e))
+  | `(hl(# $e)) => `(hl(v(# $e)))
+  | `(hl($i:ident)) => `(Exp.var $(Syntax.mkStrLit i.getId.toString))
+  | `(hl($e1 + $e2)) => `(Exp.binop .plus hl($e1) hl($e2))
+  | `(hl($e1 = $e2)) => `(Exp.binop .eq hl($e1) hl($e2))
+  | `(hl($e1 $e2)) => `(Exp.app hl($e1) hl($e2))
+  | `(hl(rec $f $x := $e)) => do `(Exp.rec_ hl_binder($f) hl_binder($x) hl($e))
+  | `(hl(rec $f $x $xs* := $e)) => do `(hl(rec $f $x := λ $xs*, $e))
+  | `(hl(λ $xs*, $e)) => do `(hl(rec _ $xs* := $e))
+  | `(hl($e1; $e2)) => `(hl(let _ := $e1; $e2))
+  | `(hl(let $i := $e1; $e2)) => `(hl((λ $i, $e2) $e1))
+
+@[app_unexpander Binder.anon]
+def unexpAnon : Unexpander
+  | `($_) => `(hl_binder(_))
+
+@[app_unexpander Binder.named]
+def unexpNamed : Unexpander
+  | `($_ $s:str) => `(hl_binder($(Lean.mkIdent $ Name.mkSimple s.getString):ident))
+  | _ => throw ()
+
+@[app_unexpander Val.lit]
+def unexpLit : Unexpander
+  | `($_ $arg) => `(hl_val(# $arg))
+  | _ => throw ()
+
+partial def unexpValLit : TSyntax `hl_exp → UnexpandM (TSyntax `hl_exp)
+  | `(hl_exp | v(# $l)) => do
+    unexpValLit $ ← `(hl_exp | # $l)
+  | `(hl_exp | v({$i:ident})) => do
+    unexpValLit $ ← `(hl_exp | v($i:ident))
+  | x => return x
+
+@[app_unexpander Exp.val]
+def unexpVal : Unexpander
+  | `($_ $arg) => do
+    let r ← unexpValLit $ ← `(hl_exp|v($(← unpackHLVal arg)))
+    `(hl($r))
+  | _ => throw ()
+
+
+@[app_unexpander Exp.var]
+def unexpVar : Unexpander
+  | `($_ $e:str) => do `(hl($(Lean.mkIdent $ Name.mkSimple e.getString):ident))
+  | _ => throw ()
 
 @[app_unexpander Exp.binop]
 def unexpBinop : Unexpander
-  | `($_ BinOp.plus $e1 $e2) => do `(hl($(← unpackHLExp e1) + $(← unpackHLExp e2)))
+  | `($_ BinOp.plus $e1 $e2) => do `(hl(($(← unpackHLExp e1) + $(← unpackHLExp e2))))
+  | `($_ BinOp.eq $e1 $e2) => do `(hl(($(← unpackHLExp e1) = $(← unpackHLExp e2))))
   | _ => throw ()
 
+partial def unexpLam : TSyntax `hl_exp → UnexpandM (TSyntax `hl_exp)
+  | `(hl_exp | (rec _ $x := $e)) => do
+    unexpLam $ ← `(hl_exp | (λ $x, $e))
+  | `(hl_exp | (λ $x, (λ $ys, $e))) => do
+    unexpLam $ ← `(hl_exp | (λ $x $ys, $e))
+  | x => return x
+
+@[app_unexpander Exp.rec_]
+def unexpRec : Unexpander
+  | `($_ $f $x $e) => do
+    let r ← unexpLam $ ← `(hl_exp|(rec $(← unpackHLBinder f) $(← unpackHLBinder x) := $(← unpackHLExp e)))
+    `(hl($r))
+  | _ => throw ()
+
+partial def unexpLamVal : TSyntax `hl_val → UnexpandM (TSyntax `hl_val)
+  | `(hl_val | rec _ $x := $e) => do
+    unexpLamVal $ ← `(hl_val | λ $x, $e)
+  | `(hl_val | λ $x, (λ $ys, $e)) => do
+    unexpLamVal $ ← `(hl_val | λ $x $ys, $e)
+  | x => return x
+
+@[app_unexpander Val.rec_]
+def unexpRecVal : Unexpander
+  | `($_ $f $x $e) => do
+    let r ← unexpLamVal $ ← `(hl_val|rec $(← unpackHLBinder f) $(← unpackHLBinder x) := $(← unpackHLExp e))
+    `(hl_val($r))
+  | _ => throw ()
+
+partial def unexpLet : TSyntax `hl_exp → UnexpandM (TSyntax `hl_exp)
+  | `(hl_exp | (λ $f, $e2) $e1) => do
+    unexpLet $ ← `(hl_exp | let $f := $e1; $e2)
+  | `(hl_exp | let _ := $e1; $e2) => do
+    `(hl_exp | $e1; $e2)
+  | x => return x
+
+@[app_unexpander Exp.app]
+def unexpApp : Unexpander
+  | `($_ $e1 $e2) => do
+    let r ← unexpLet $ ← `(hl_exp|$(← unpackHLExp e1) $(← unpackHLExp e2))
+    `(hl($r))
+  | _ => throw ()
+
+
 variable (v : Val)
+/-- info: hl((#1 + (#1 + v(v)))) : Exp -/
+#guard_msgs in
 #check hl(#1 + #1 + {.val v})
-#check hl(#1 + #1 + #v)
+/--
+info: Exp.binop BinOp.plus (Exp.val (Val.lit (@OfNat.ofNat BaseLit (nat_lit 1) (@instOfNatBaseLit (nat_lit 1)))))
+  (Exp.binop BinOp.plus (Exp.val (Val.lit (@OfNat.ofNat BaseLit (nat_lit 1) (@instOfNatBaseLit (nat_lit 1)))))
+    (Exp.val v)) : Exp
+-/
+#guard_msgs in
+set_option pp.explicit true in
+#check hl(#1 + #1 + {.val v})
+/-- info: hl((#1 + (#1 + v(v)))) : Exp -/
+#guard_msgs in
+#check hl(#1 + (#1 + v(v)))
+
+/-- info: hl(((#1 + #1) + v(v))) : Exp -/
+#guard_msgs in
+#check hl((#1 + #1) + v(v))
+
+/-- info: hl((#1 = (v + v(v)))) : Exp -/
+#guard_msgs in
+#check hl(#1 = v + v(v))
+/--
+info: Exp.binop BinOp.eq (Exp.val (Val.lit (@OfNat.ofNat BaseLit (nat_lit 1) (@instOfNatBaseLit (nat_lit 1)))))
+  (Exp.binop BinOp.plus (Exp.var "v") (Exp.val v)) : Exp
+-/
+#guard_msgs in
+set_option pp.explicit true in
+#check hl(#1 = v + v(v))
+
+/-- info: hl((λ x y, #1)) : Exp -/
+#guard_msgs in
+#check hl(λ x y, #1)
+
+/-- info: hl_val(λ x y, #1) : Val -/
+#guard_msgs in
+#check hl_val(λ x y, #1)
+
+/--
+info: Exp.rec_ Binder.anon (Binder.named "x")
+  (Exp.rec_ Binder.anon (Binder.named "y")
+    (Exp.val (Val.lit (@OfNat.ofNat BaseLit (nat_lit 1) (@instOfNatBaseLit (nat_lit 1)))))) : Exp
+-/
+#guard_msgs in
+set_option pp.explicit true in
+#check hl(λ x y, #1)
+
+/-- info: hl((rec f x := x) #1) : Exp -/
+#guard_msgs in
+#check hl((rec f x := x) #1)
+
+/--
+info: (Exp.rec_ (Binder.named "f") (Binder.named "x") (Exp.var "x")).app
+  (Exp.val (Val.lit (@OfNat.ofNat BaseLit (nat_lit 1) (@instOfNatBaseLit (nat_lit 1))))) : Exp
+-/
+#guard_msgs in
+set_option pp.explicit true in
+#check hl((rec f x := x) #1)
+
+/-- info: hl((λ x y, let z := #1; #2; (x + (y + z)))) : Exp -/
+#guard_msgs in
+#check hl(λ x y, let z := #1; #2; x + y + z)
+
+/--
+info: Exp.rec_ Binder.anon (Binder.named "x")
+  (Exp.rec_ Binder.anon (Binder.named "y")
+    ((Exp.rec_ Binder.anon (Binder.named "z")
+          ((Exp.rec_ Binder.anon Binder.anon
+                (Exp.binop BinOp.plus (Exp.var "x") (Exp.binop BinOp.plus (Exp.var "y") (Exp.var "z")))).app
+            (Exp.val (Val.lit (@OfNat.ofNat BaseLit (nat_lit 2) (@instOfNatBaseLit (nat_lit 2))))))).app
+      (Exp.val (Val.lit (@OfNat.ofNat BaseLit (nat_lit 1) (@instOfNatBaseLit (nat_lit 1))))))) : Exp
+-/
+#guard_msgs in
+set_option pp.explicit true in
+#check hl(λ x y, let z := #1; #2; x + y + z)

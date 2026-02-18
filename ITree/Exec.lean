@@ -336,3 +336,31 @@ instance (priority:=low) sumInSEHR {E₁ E₂ E₃ GE : Effect.{u}} {GR σ₁ σ
     have h' := hin.isIn i (s₂₃.snd) k (λ t s₃ => p t ⟨s₂₃.fst, s₃⟩) h
     apply SEHandler.handle_mono; assumption
     grind
+
+/-- EHandler isomorphism -/
+structure Iso (α β : Type _) where
+  toFun : α → β
+  invFun : β → α
+  left_inv : Function.LeftInverse invFun toFun
+  right_inv : Function.RightInverse invFun toFun
+
+@[simp, grind =]
+theorem toFun_invFun {α β} (iso : Iso α β) s :
+  iso.toFun (iso.invFun s) = s := by grind [iso.left_inv, iso.right_inv]
+
+@[simp, grind =]
+theorem invFun_toFun {α β} (iso : Iso α β) s :
+  iso.invFun (iso.toFun s) = s := by grind [iso.left_inv, iso.right_inv]
+
+def isoEH {E GE R σ₁ σ₂} (iso : Iso σ₁ σ₂) (eh : EHandler E GE R σ₁) : EHandler E GE R σ₂ where
+  handle i s k p := eh.handle i (iso.invFun s) k (λ t s' => p t (iso.toFun s'))
+  handle_mono := by grind [EHandler.handle_mono]
+
+instance {E E' GE GR σ₁ σ₂ σ'} (iso : Iso σ₁ σ₂) (eh : EHandler E GE GR σ₁) (eh' : EHandler E' GE GR σ') [E' -< E]
+  [hin : InEH eh' eh]:
+  InEH eh' (isoEH iso eh) where
+  getState s := hin.getState (iso.invFun s)
+  putState s x := iso.toFun $ hin.putState s (iso.invFun x)
+  put_get := by simp
+  get_put := by simp
+  isIn := by grind [isoEH, hin.isIn]
