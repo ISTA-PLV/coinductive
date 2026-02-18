@@ -405,11 +405,24 @@ theorem exec_interp σ σ' E' GR (t : ITree (E₁ ⊕ₑ E') GR) p s
     apply exec.coind _ λ t s => exec (ehf ⊕ₑₕ wrapInterpEH f eh) (ITree.interp (inl_ f) t) s p
     rotate_left 1; grind
     intro t s he
+    cases t
+    · sorry
+    · sorry
+    · sorry
+  · intro he
+    apply exec.coind _ λ t s =>
+      ∃ t', t = ITree.interp (inl_ f) t' ∧
+      exec ((interpEH f ehf).toEHandler ⊕ₑₕ eh) t' s λ t' s' =>
+        p (ITree.interp (inl_ f) t') s'
+    rotate_left 1; grind
+    rintro _ s ⟨t, rfl, he⟩
     unfold exec at he
-    sorry
-    -- cases he
-    -- · apply exec.stop; grind
-    -- · sorry
-  · sorry
+    cases he
+    · apply exec.F.stop; assumption
+    · simp
+      apply exec.F.tau
+      grind
+    · simp
+      sorry
 
 end interp

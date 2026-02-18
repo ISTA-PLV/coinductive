@@ -256,6 +256,29 @@ instance : Monad (ITree.{u} E) where
   pure := ITree.ret
   bind := ITree.bind
 
+@[elab_as_elim, cases_eliminator]
+def ITree.cases {E : Effect.{u}} {R}
+    {motive : ITree E R → Sort v}
+    (ret : ∀ r, motive (pure r))
+    (tau : ∀ t : ITree E R, motive (t.tau))
+    (vis : ∀ i k, motive (ITree.vis i k))
+    (t : ITree E R) : motive t := by
+    rw [<-ITree.unfold_fold t]
+    cases t.unfold
+    · apply ret
+    · apply tau
+    · apply vis
+
+@[simp]
+theorem unfold_pure (r : R) :
+  ITree.unfold (pure r) = ITreeF.ret (E:=E) r := by
+    simp [pure]
+
+@[simp]
+theorem pure_approx_1 (r : R) n :
+  (pure r : ITree _ _).approx (n + 1) = ITreeF.ret (E:=E) r := by
+    simp [pure]
+
 instance : LawfulMonad (ITree E) := LawfulMonad.mk' (ITree E)
   (id_map := by
     simp [Functor.map]
@@ -263,8 +286,7 @@ instance : LawfulMonad (ITree E) := LawfulMonad.mk' (ITree E)
     ext n
     induction n generalizing t; congr 0
     unfold ITree.bind
-    rw (occs := [2]) [<-ITree.unfold_fold t]
-    split <;> simp [*])
+    cases t <;> simp [*])
   (pure_bind := by simp [pure, Bind.bind])
   (bind_assoc := by
     simp [Bind.bind]
@@ -312,7 +334,27 @@ def ITree.interp {F} (f : (i : E.I) → ITree F (E.O i)) : ITree E R → ITree F
   ITree.iter λ t =>
     match t.unfold with
     | .ret r => return (.inr r)
-    | .tau t => return (.inl t)
+    | .tau t => ITree.tau (return (.inl t))
     | .vis i k => f i >>= λ o => return (.inl (k o))
+
+@[simp]
+theorem interp_pure {F} (f : (i : E.I) → ITree F (E.O i)) (r : R) :
+  ITree.interp f (pure r) = pure r := by
+    unfold ITree.interp ITree.iter
+    simp
+
+@[simp]
+theorem interp_tau {F} (f : (i : E.I) → ITree F (E.O i)) (t : ITree E R) :
+  ITree.interp f (t.tau) = (ITree.interp f t).tau := by
+    unfold ITree.interp
+    rw (occs := [1]) [ITree.iter]
+    simp
+
+@[simp]
+theorem interp_vis {F} (f : (i : E.I) → ITree F (E.O i)) i (k : E.O i → ITree E R) :
+  ITree.interp f (ITree.vis i k) = (f i) >>= λ o => (ITree.interp f (k o)) := by
+    unfold ITree.interp
+    rw (occs := [1]) [ITree.iter]
+    simp
 
 end ITree
