@@ -35,7 +35,8 @@ theorem fork_mono [concE -< E] α [PartialOrder α] (f : α → ITree E PUnit) :
   intro hf
   apply monotone_bind
   · apply monotone_const
-  · sorry
+  · rintro x y _ (_|_) <;> simp [PartialOrder.rel_refl]
+    apply monotone_bind <;> simp [*, monotone_const]
 
 def ConcE.yield {E} [concE -< E] : ITree E PUnit :=
   .trigger concE (.yield)

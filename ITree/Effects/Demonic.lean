@@ -17,12 +17,13 @@ def demonicEH (α : Type _) : SEHandler (demonicE α) PUnit where
   handle i s p := ∃ x, ∃ (h : i x), p ⟨_, h⟩ s
   handle_mono := by grind
 
-theorem exec_choose {α : Type u} {GE : Effect.{u}} GR σ p q s
-    {k : {x : α // q x} → ITree GE GR}
+theorem exec_choose {α : Type u} {GE : Effect.{u}} {GR σ p q s}
+    {k : {x : α // q x} → ITree GE GR} x h
     [demonicE α -< GE] (eh : EHandler GE GE GR σ) [hin : InEH (demonicEH α).toEHandler eh]
-    : (∃ (x : α) (h : q x), exec eh (k ⟨x, h⟩) s p) →
+    : (exec eh (k ⟨x, h⟩) s p) →
       exec eh (choose q >>= k) s p := by
-  rintro he; unfold choose
+  intro he; unfold choose
   apply exec.dup
   apply exec.trigger (demonicEH α).toEHandler
   simp_all [demonicEH]
+  exists ?_, ?_ <;> try assumption

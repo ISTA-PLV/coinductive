@@ -45,9 +45,14 @@ def HeapE.load! [heapE Loc Val -< E] [failE -< E] (l : Loc) : ITree E Val := do
   return v
 export HeapE (load!)
 
-def HeapE.alloc [heapE Loc Val -< E] [demonicE Loc -< E] (v : Val) : ITree E Loc := do
+def HeapE.allocN [heapE Loc Val -< E] [demonicE (List Loc) -< E] (P : List Loc → Prop) (v : Val) : ITree E {ls // P ls} := do
   let hmap ← get
-  let ⟨l, _⟩ ← choose (λ l => l ∉ hmap)
-  set (hmap.insert l v)
-  return l
+  let ⟨ls, _⟩ ← choose (λ ls : List _ => P ls ∧ ∀ l ∈ ls, l ∉ hmap)
+  set (hmap.insertMany $ ls.map λ l => ⟨l, some v⟩)
+  return ⟨ls, by grind⟩
+export HeapE (allocN)
+
+def HeapE.alloc [heapE Loc Val -< E] [demonicE (List Loc) -< E] (v : Val) : ITree E Loc := do
+  let ⟨ls, _⟩ ← allocN (·.length = 1) v
+  return ls.head (by grind)
 export HeapE (alloc)

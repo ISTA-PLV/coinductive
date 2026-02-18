@@ -44,33 +44,148 @@ def ITree.unfold (t : ITree E R) : ITreeF E R (ITree E R) := CoInd.unfold _ t
 
 variable {E : Effect.{u}}
 
-def ITree.spin : ITree E R := cofix _ (ITreeF.tau) PUnit.unit
-
 instance : Inhabited (ITreeF E R PUnit) where default := .tau ⟨⟩
+
+@[simp]
+theorem ITree.unfold_fold (t : ITree E R) :
+  ITree.fold (ITree.unfold t) = t := by simp [ITree.fold, ITree.unfold]
+
+@[simp]
+theorem ret_approx_1 (r : R) n :
+  (ITree.ret (E:=E) r).approx (n + 1) = ITreeF.ret r := by
+    simp [ITree.ret, ITree.fold, CoInd.fold, QPF.map, QPF.pack]
+
+@[simp]
+theorem fold_ret_approx_1 (r : R) n :
+  (ITree.fold (ITreeF.ret (E:=E) r)).approx (n + 1) = ITreeF.ret r :=
+    ret_approx_1 r n
+
+@[simp]
+theorem tau_approx_1 (t : ITree E R) n :
+  t.tau.approx (n + 1) = ITreeF.tau (t.approx n) := by
+    simp [ITree.tau, ITree.fold, CoInd.fold, QPF.map, QPF.pack]
+
+@[simp]
+theorem fold_tau_approx_1 (t : ITree E R) n :
+  (ITree.fold (ITreeF.tau t)).approx (n + 1) = ITreeF.tau (t.approx n) :=
+    tau_approx_1 t n
+
+@[simp]
+theorem vis_approx_1 i (t : E.O i → ITree E R) n :
+  (ITree.vis i t).approx (n + 1) = ITreeF.vis i (λ o => (t o).approx n) := by
+    simp [ITree.vis, ITree.fold, CoInd.fold, QPF.map, QPF.pack]
+    rfl
+
+@[simp]
+theorem fold_vis_approx_1 i (t : E.O i → ITree E R) n :
+  (ITree.fold (ITreeF.vis i t)).approx (n + 1) = ITreeF.vis i (λ o => (t o).approx n) := vis_approx_1 i t n
+
+@[simp]
+theorem unfold_ret (r : R) :
+  ITree.unfold (ITree.ret r) = ITreeF.ret (E:=E) r := by
+    simp [ITree.ret, ITree.fold, ITree.unfold]
+
+@[simp]
+theorem unfold_tau (t : ITree E R) :
+  ITree.unfold (ITree.tau t) = ITreeF.tau t := by
+    simp [ITree.tau, ITree.fold, ITree.unfold]
+
+@[simp]
+theorem unfold_vis i (t : E.O i → ITree E R) :
+  ITree.unfold (ITree.vis i t) = ITreeF.vis i t := by
+    simp [ITree.vis, ITree.fold, ITree.unfold]
+
+
+theorem tau_monoN (t1 t2 : ITree E R) n :
+  CoIndN.le _ (t1.approx n) (t2.approx n) →
+  CoIndN.le _ (t1.tau.approx (n + 1)) (t2.tau.approx (n + 1))
+ := by
+    intro hs
+    simp [CoIndN.le, QPF.unpack]
+    right
+    constructor <;> try rfl
+    grind [coherent1]
 
 @[partial_fixpoint_monotone]
 theorem tau_mono α [PartialOrder α] (f : α → ITree E R) :
   monotone f →
   monotone (λ x => ITree.tau (f x)) := by
     intro hf t1 t2 hle
-    simp [PartialOrder.rel, CoInd.le, ITree.tau, ITree.fold, QPF.unpack]
+    apply CoInd.le_leN
+    rintro ⟨n⟩; simp [CoIndN.le]
+    apply tau_monoN
+    grind [CoInd.leN_le, monotone]
+
+theorem vis_monoN i (t1 t2 : E.O i → ITree E R) n :
+  (∀ o, CoIndN.le _ ((t1 o).approx n) ((t2 o).approx n)) →
+  CoIndN.le _ ((ITree.vis i t1).approx (n + 1)) ((ITree.vis i t2).approx (n + 1))
+ := by
+    intro hs
+    simp [CoIndN.le, QPF.unpack]
     right
     constructor <;> try rfl
-    intro _
-    apply hf
-    apply hle
+    grind [coherent1]
 
 @[partial_fixpoint_monotone]
 theorem vis_mono α [PartialOrder α] i (f : α → E.O i → ITree E R) :
   monotone f →
   monotone (λ x => ITree.vis i (f x)) := by
     intro hf t1 t2 hle
-    simp [PartialOrder.rel, CoInd.le, QPF.unpack]
-    right
-    constructor <;> try rfl
-    intro _
-    apply hf
-    apply hle
+    apply CoInd.le_leN
+    rintro ⟨n⟩; simp [CoIndN.le]
+    apply vis_monoN
+    intro o
+    have := hf t1 t2 hle o
+    grind [CoInd.leN_le]
+
+def ITree.spin : ITree E R := spin.tau
+partial_fixpoint
+
+@[simp]
+theorem ITree.bot_eq :
+  CoInd.bot (ITreeF E R) = ITree.spin := by
+    ext n
+    induction n; congr 0
+    rw [CoInd.bot_eq, spin]
+    simp [QPF.map, QPF.pack, CoInd.fold, *]
+
+theorem ITree.le_unfold (t1 t2 : ITree E R) :
+  (t1 ⊑ t2) = (t1 = .spin ∨
+    (∃ r, t1 = .ret r ∧ t2 = .ret r) ∨
+    (∃ t1' t2', t1 = .tau t1' ∧ t2 = .tau t2' ∧ t1' ⊑ t2') ∨
+    (∃ i t1' t2', t1 = .vis i t1' ∧ t2 = .vis i t2' ∧ ∀ o, t1' o ⊑ t2' o)) := by
+    ext
+    constructor
+    · intro h
+      rw [CoInd.le_unfold] at h
+      rcases h with (rfl|⟨i, _, _, _, _, h1, h2⟩); simp
+      rw [<-Coinductive.unfold_fold _ t1, <-Coinductive.unfold_fold _ t2]
+      rw [<-QPF.unpack_pack (CoInd.unfold _ t1), <-QPF.unpack_pack (CoInd.unfold _ t2)]
+      simp only [h1, h2]
+      right
+      cases i <;> simp [QPF.pack, ret, tau, vis, fold]
+      · grind
+      · grind
+      · right
+        right
+        exists ?_, ?_; rotate_left 1
+        constructor; rfl
+        apply Exists.intro
+        constructor; rfl
+        simp_all
+    · rintro (rfl| ⟨_, rfl, rfl⟩ | ⟨_, _, rfl, rfl, _⟩|⟨_, _, _, rfl, rfl, _⟩)
+      · simp [CoInd.le_unfold]
+      · apply PartialOrder.rel_refl
+      · simp [CoInd.le_unfold]
+        right
+        simp [QPF.unpack, ITree.tau, ITree.fold]
+        constructor <;> try rfl
+        grind
+      · simp [CoInd.le_unfold]
+        right
+        simp [QPF.unpack, ITree.vis, ITree.fold]
+        constructor <;> try rfl
+        grind
 
 -- use Bind.bind instead
 private def ITree.bind {S} (t1 : ITree E R) (t2 : R → ITree E S) :=
@@ -80,6 +195,25 @@ private def ITree.bind {S} (t1 : ITree E R) (t2 : R → ITree E S) :=
   | .vis i k => .vis i (λ o => ITree.bind (k o) t2)
 partial_fixpoint
 
+@[simp]
+theorem itree_ret_bind {S} r (t : S → ITree E R) :
+  ITree.bind (.ret r) t = t r := by
+    rw [ITree.bind]
+    simp [ITree.ret, ITree.fold, ITree.unfold]
+
+@[simp]
+theorem itree_vis_bind {S} i k (t : S → ITree E R) :
+  ITree.bind (.vis i k) t = .vis i (λ o => ITree.bind (k o) t) := by
+    rw [ITree.bind]
+    simp [ITree.vis, ITree.fold, ITree.unfold]
+
+@[simp]
+theorem itree_tau_bind {S} t1 (t : S → ITree E R) :
+  ITree.bind (t1.tau) t = .tau (ITree.bind t1 t) := by
+    rw [ITree.bind]
+    simp [ITree.tau, ITree.fold, ITree.unfold]
+
+
 @[partial_fixpoint_monotone]
 theorem bind_mono {α} {S} [PartialOrder α]
   (f : α → ITree E R) (g : α → R → ITree E S) :
@@ -87,31 +221,59 @@ theorem bind_mono {α} {S} [PartialOrder α]
   monotone g →
   monotone (λ x => ITree.bind (f x) (g x)) := by
     intro hf hg t1 t2 hle
-    simp [PartialOrder.rel]
+    apply CoInd.le_leN
+    intro n
+    dsimp only
     have hlef : (f t1) ⊑ (f t2) := by apply hf; assumption
-    -- TODO: Here we want to generalize vis_mono such that we can use it
-    sorry
+    generalize f t1 = t1, f t2 = t2 at hlef
+    induction n generalizing t1 t2; simp [CoIndN.le]
+    unfold ITree.bind
+    rw [ITree.le_unfold] at hlef
+    rcases hlef with (rfl|⟨_, rfl, rfl⟩|⟨_, _, rfl, rfl, _⟩|⟨_, _, _, rfl, rfl, _⟩)
+    · unfold ITree.spin
+      simp [CoIndN.le, CoIndN.bot]
+      left
+      unfold ITree.spin
+      simp
+      congr
+      ext n
+      induction n; congr 0
+      unfold ITree.bind ITree.spin
+      simp_all
+    · rename_i x
+      simp
+      have := hg t1 t2 hle x
+      grind [CoInd.leN_le, monotone]
+    · simp
+      apply tau_monoN
+      grind [CoInd.leN_le, monotone]
+    · simp
+      apply vis_monoN
+      grind [CoInd.leN_le, monotone]
+
 
 instance : Monad (ITree.{u} E) where
   pure := ITree.ret
   bind := ITree.bind
 
-instance : LawfulMonad (ITree E) where
-  map_const := by simp [Functor.mapConst, Functor.map]
-  id_map := by simp [Functor.map]; sorry
-  seqLeft_eq := by
-    simp [Functor.map, SeqLeft.seqLeft, Seq.seq];
-    unfold Function.const; sorry
-  seqRight_eq := by
-    simp [Functor.map, SeqRight.seqRight, Seq.seq]; sorry
-  pure_seq := by simp [pure, Seq.seq, Functor.map]; sorry
-  bind_pure_comp := by
-    intros
-    simp [Bind.bind, Functor.map, pure];
-    unfold Function.comp; rfl
-  bind_map := by simp [Bind.bind, Seq.seq, Functor.map]
-  pure_bind := by simp [pure, Bind.bind]; unfold ITree.bind; simp [ITree.ret, ITree.fold, ITree.unfold]
-  bind_assoc := by simp [Bind.bind]; sorry
+instance : LawfulMonad (ITree E) := LawfulMonad.mk' (ITree E)
+  (id_map := by
+    simp [Functor.map]
+    intro _ t
+    ext n
+    induction n generalizing t; congr 0
+    unfold ITree.bind
+    rw (occs := [2]) [<-ITree.unfold_fold t]
+    split <;> simp [*])
+  (pure_bind := by simp [pure, Bind.bind])
+  (bind_assoc := by
+    simp [Bind.bind]
+    intro _ _ _ t1 t2 t3
+    ext n
+    induction n generalizing t1; congr 0
+    rw [ITree.bind.eq_def t1]
+    rw [ITree.bind.eq_def t1]
+    split <;> simp [*])
 
 instance : MonoBind (ITree E) where
   bind_mono_left := by
@@ -127,18 +289,13 @@ instance : MonoBind (ITree E) where
     · intro _; grind
 
 @[simp]
-theorem vis_bind i k (t : S → ITree E R) :
-  (.vis i k) >>= t = .vis i (λ o => k o >>= t) := by
-    simp [Bind.bind]
-    rw [ITree.bind]
-    simp [ITree.vis, ITree.fold, ITree.unfold]
+theorem tau_bind t1 (t : S → ITree E R) :
+  t1.tau >>= t = .tau (t1 >>= t) := by simp [Bind.bind]
 
 @[simp]
-theorem tau_bind t1 (t : S → ITree E R) :
-  t1.tau >>= t = .tau (t1 >>= t) := by
-    simp [Bind.bind]
-    rw [ITree.bind]
-    simp [ITree.tau, ITree.fold, ITree.unfold]
+theorem vis_bind i k (t : S → ITree E R) :
+  (.vis i k) >>= t = .vis i (λ o => k o >>= t) := by simp [Bind.bind]
+
 
 def ITree.trigger (E₁ : Effect.{u}) {E₂ : Effect.{u}} [E₁ -< E₂] (i : E₁.I) : ITree.{u} E₂ (E₁.O i) :=
   let ⟨i₂, f⟩ := (Subeffect.map i);

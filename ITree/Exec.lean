@@ -31,6 +31,7 @@ def SEHandler.toEHandler {E GE : Effect.{u}} {GR σ : Type u} (eh : SEHandler E 
   handle i s k p := eh.handle i s (λ o s' => p (k o) s')
   handle_mono := by grind [SEHandler.handle_mono]
 
+/- TODO: This coercion sometimes fails to trigger, unclear why -/
 instance {E GE GR σ} : Coe (SEHandler E σ) (EHandler E GE GR σ) where
   coe := SEHandler.toEHandler
 
@@ -39,7 +40,7 @@ theorem seh_to_ehandler_handle_eq_seh_handle {E GE : Effect.{u}} GR (eh : SEHand
     eh.toEHandler.handle (GE:=GE) (GR:=GR) i s k p = eh.handle i s (λ o s' => p (k o) s') := by
   apply propext; simp [SEHandler.toEHandler]
 
-
+/-- Inclusion of EHandlers -/
 class InEH {E₁ E₂ GE : Effect.{u}} {GR : Type u} {σ₁ σ₂ : Type u} [sub : E₁ -< E₂]
   (eh₁ : EHandler E₁ GE GR σ₁) (eh₂ : EHandler E₂ GE GR σ₂) where
   getState : σ₂ → σ₁
@@ -246,7 +247,7 @@ def sumEH {E₁ E₂ GE GR σ₁ σ₂} (eh₁ : EHandler E₁ GE GR σ₁) (eh�
       apply eh₂.handle_mono; assumption
       grind
 
-notation:59 eh₁ "⊕ₑₕ" eh₂ => sumEH eh₁ eh₂
+notation:59 eh₁ " ⊕ₑₕ " eh₂ => sumEH eh₁ eh₂
 
 instance (priority:=mid) sumInEHL {E₁ E₂ E₃ GE GR σ₁ σ₂ σ₃} [E₁ -< E₂] (eh₁ : EHandler E₁ GE GR σ₁) (eh₂ : EHandler E₂ GE GR σ₂) (eh₃ : EHandler E₃ GE GR σ₃)
     [hin : InEH eh₁ eh₂] :
@@ -308,7 +309,7 @@ def sumSEH {E₁ E₂ σ₁ σ₂} (eh₁ : SEHandler E₁ σ₁) (eh₂ : SEHan
       apply eh₂.handle_mono; assumption
       grind
 
-notation:50 eh₁ "⊕ₛₑₕ" eh₂ => sumSEH eh₁ eh₂
+notation:50 eh₁ " ⊕ₛₑₕ " eh₂ => sumSEH eh₁ eh₂
 
 instance (priority:=mid) sumInSEHL {E₁ E₂ E₃ GE : Effect.{u}} {GR σ₁ σ₂ σ₃ : Type u} [E₁ -< E₂] (eh₁ : EHandler E₁ GE GR σ₁) (eh₂ : SEHandler E₂ σ₂) (eh₃ : SEHandler E₃ σ₃)
     [hin : InEH eh₁ eh₂.toEHandler] :
