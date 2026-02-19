@@ -389,6 +389,7 @@ class EHandlerParametric {E GR σ₁ σ₂ GE₁ GE₂}
 --   handle_rel₁ i s₁ s₂ k p :
 --     state_rel s₁ s₂ →
 --     eh₁.handle i s₁ k p →
+-- -- TODO: introduce an exec! that takes an [EHandler E GE GR σ] and a contiuation from R to ITree GE GR? It can also force the ehandler to result in .ret instead of an arbitrary itree maybe?
 --     exec eh₂ (ITree.interp (ITree.trigger _) (f i) >>= λ o => ITree.interp Gf (k o)) s₂ λ t' s' => True
 
 def interpEH {σ} (eh : SEHandler E₂ σ) : SEHandler E₁ σ where
