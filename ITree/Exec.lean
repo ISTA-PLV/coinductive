@@ -369,6 +369,22 @@ instance {E E' GE GR σ₁ σ₂ σ'} (iso : Iso σ₁ σ₂) (eh : EHandler E G
 section interp
 variable {E₁ E₂ : Effect.{u}} (f : (i : E₁.I) → ITree E₂ (E₁.O i))
 
+def interpEH {σ} (eh : SEHandler E₂ σ) : SEHandler E₁ σ where
+  handle i s p := exec eh (f i) s λ r s' => ∃ v, r = pure v ∧ p v s'
+  handle_mono he h := by grind [exec.mono]
+
+theorem exec_interpEH {GE : Effect.{u}} GR σ σ₂ (ehf : SEHandler E₂ σ₂) i p s
+    {k : E₁.O i → ITree GE GR}
+    [E₁ -< GE] (eh : EHandler GE GE GR σ) [hin : InEH (interpEH f ehf).toEHandler eh] :
+      (exec ehf (f i) (hin.getState s) λ r s' => ∃ v, r = pure v ∧ exec eh (k v) (hin.putState s' s) p) →
+      exec eh (ITree.trigger E₁ i >>= k) s p := by
+  rintro he
+  apply exec.dup
+  apply exec.trigger (interpEH f ehf).toEHandler
+  simp_all [interpEH]
+
+/- TODO: everything below here is work in progress -/
+
 class EHandlerParametric {E GR σ₁ σ₂ GE₁ GE₂}
   (rel : ITree GE₁ GR → ITree GE₂ GR → Prop)
   (eh₁ : EHandler E GE₁ GR σ₁) (eh₂ : EHandler E GE₂ GR σ₂) where
@@ -391,20 +407,6 @@ class EHandlerParametric {E GR σ₁ σ₂ GE₁ GE₂}
 --     eh₁.handle i s₁ k p →
 -- -- TODO: introduce an exec! that takes an [EHandler E GE GR σ] and a contiuation from R to ITree GE GR? It can also force the ehandler to result in .ret instead of an arbitrary itree maybe?
 --     exec eh₂ (ITree.interp (ITree.trigger _) (f i) >>= λ o => ITree.interp Gf (k o)) s₂ λ t' s' => True
-
-def interpEH {σ} (eh : SEHandler E₂ σ) : SEHandler E₁ σ where
-  handle i s p := exec eh (f i) s λ r s' => ∃ v, r = pure v ∧ p v s'
-  handle_mono he h := by grind [exec.mono]
-
-theorem exec_interpEH {GE : Effect.{u}} GR σ σ₂ (ehf : SEHandler E₂ σ₂) i p s
-    {k : E₁.O i → ITree GE GR}
-    [E₁ -< GE] (eh : EHandler GE GE GR σ) [hin : InEH (interpEH f ehf).toEHandler eh] :
-      (exec ehf (f i) (hin.getState s) λ r s' => ∃ v, r = pure v ∧ exec eh (k v) (hin.putState s' s) p) →
-      exec eh (ITree.trigger E₁ i >>= k) s p := by
-  rintro he
-  apply exec.dup
-  apply exec.trigger (interpEH f ehf).toEHandler
-  simp_all [interpEH]
 
 def inl_ {E' : Effect.{u}} :
   (i : (E₁ ⊕ₑ E').I) → ITree (E₂ ⊕ₑ E') ((E₁ ⊕ₑ E').O i)
