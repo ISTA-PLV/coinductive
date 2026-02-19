@@ -1,9 +1,12 @@
 name = "Coinductive"
 version = "0.1.0"
-defaultTargets = ["Coinductive", "Test", "ITree"]
+defaultTargets = ["Coinductive", "Test", "ITree", "HeapLang"]
 
 [[lean_lib]]
 name = "Coinductive"
+
+[[lean_lib]]
+name = "HeapLang"
 
 [[lean_lib]]
 name = "Test"

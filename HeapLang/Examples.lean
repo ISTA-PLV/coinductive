@@ -1,8 +1,8 @@
-import Test.HeapLang
+import HeapLang.Lang
+import HeapLang.Semantics
+import HeapLang.Notation
 
-open ITree
-open ITree.Effects
-open ITree.Exec
+open ITree ITree.Effects ITree.Exec
 
 namespace HeapLang
 
@@ -25,7 +25,7 @@ example tp heap :
 -- set_option pp.explicit true in
 example tp heap :
   exec heaplangEH hl(let x := #1; assert(x + #1 = #2)).denote ⟨tp, heap⟩ λ t _ => t = return (.lit $ .unit) := by
-    simp [Exp.denote, Exp.assert, Val.isUnboxed, BaseLit.isUnboxed, Val.bool!, Exp.isVal, Exp.subst, Exp.substStr, yieldAfter, Exp.yieldIfNotVal, Val.rec!, BinOp.denote, BinOp.evalInt, -bind_pure_comp]
+    simp [Exp.denote, Exp.assert, Val.compareSafe, Val.isUnboxed, BaseLit.isUnboxed, Val.bool!, Exp.isVal, Exp.subst, Exp.substStr, yieldAfter, Exp.yieldIfNotVal, Val.rec!, BinOp.denote, BinOp.evalInt, -bind_pure_comp]
     apply exec_yield_same
     apply exec_yield_same
     apply exec_yield_same
