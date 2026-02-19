@@ -369,6 +369,28 @@ instance {E E' GE GR σ₁ σ₂ σ'} (iso : Iso σ₁ σ₂) (eh : EHandler E G
 section interp
 variable {E₁ E₂ : Effect.{u}} (f : (i : E₁.I) → ITree E₂ (E₁.O i))
 
+class EHandlerParametric {E GR σ₁ σ₂ GE₁ GE₂}
+  (rel : ITree GE₁ GR → ITree GE₂ GR → Prop)
+  (eh₁ : EHandler E GE₁ GR σ₁) (eh₂ : EHandler E GE₂ GR σ₂) where
+  state_rel : σ₁ → σ₂ → Prop
+  handle_rel i s₁ s₂ k₁ k₂ p :
+    state_rel s₁ s₂ →
+    (∀ o, rel (k₁ o) (k₂ o))  →
+    eh₁.handle i s₁ k₁ p →
+    eh₂.handle i s₂ k₂ λ t₂' s₂' =>
+      ∃ t₁' s₁', state_rel s₁' s₂' ∧ rel t₁' t₂' ∧ p t₁' s₁'
+
+
+-- class EHandlerInterp {GR σ₁ σ₂ GE₁ GE₂} [E₂ -< GE₂]
+--   (f : (i : E₁.I) → ITree E₂ (E₁.O i))
+--   (Gf : (i : GE₁.I) → ITree GE₂ (GE₁.O i))
+--   (eh₁ : EHandler E₁ GE₁ GR σ₁) (eh₂ : EHandler E₂ GE₂ GR σ₂) where
+--   state_rel : σ₁ → σ₂ → Prop
+--   handle_rel₁ i s₁ s₂ k p :
+--     state_rel s₁ s₂ →
+--     eh₁.handle i s₁ k p →
+--     exec eh₂ (ITree.interp (ITree.trigger _) (f i) >>= λ o => ITree.interp Gf (k o)) s₂ λ t' s' => True
+
 def interpEH {σ} (eh : SEHandler E₂ σ) : SEHandler E₁ σ where
   handle i s p := exec eh (f i) s λ r s' => ∃ v, r = pure v ∧ p v s'
   handle_mono he h := by grind [exec.mono]
@@ -385,44 +407,72 @@ theorem exec_interpEH {GE : Effect.{u}} GR σ σ₂ (ehf : SEHandler E₂ σ₂)
 
 def inl_ {E' : Effect.{u}} :
   (i : (E₁ ⊕ₑ E').I) → ITree (E₂ ⊕ₑ E') ((E₁ ⊕ₑ E').O i)
-  | .inl x => ITree.interp (ITree.trigger E₂) (f x)
+  -- The tau is necessary to ensure that we always do at least one step when interpreting
+  | .inl x => ITree.tau (ITree.interp (ITree.trigger E₂) (f x))
   | .inr x => ITree.trigger E' x
 
-def wrapInterpEH {E GR σ} (eh : EHandler E (E₁ ⊕ₑ E) GR σ) : EHandler E (E₂ ⊕ₑ E) GR σ where
-  handle i s k p :=
-    ∃ k', k = (λ o => ITree.interp (inl_ f) (k' o)) ∧
-    eh.handle i s k' λ t s' => p (ITree.interp (inl_ f) t) s'
-  handle_mono he h := by
-    rcases he with ⟨_, rfl, _⟩
-    grind [eh.handle_mono]
+theorem exec_interp_1 σ σ₁ σ₂ E' GR (t : ITree (E₁ ⊕ₑ E') GR) p s s₁ s₂
+  (ehf : SEHandler E₂ σ) (eh₁ : EHandler E' (E₁ ⊕ₑ E') GR σ₁)
+  (eh₂ : EHandler E' (E₂ ⊕ₑ E') GR σ₂)
+  [ehp : EHandlerParametric (ITree.interp (inl_ f) · = ·) eh₁ eh₂]:
+  ehp.state_rel s₁ s₂ →
+  (exec (ehf.toEHandler ⊕ₑₕ eh₂) (ITree.interp (inl_ f) t) (s, s₂) p) →
+  exec ((interpEH f ehf).toEHandler ⊕ₑₕ eh₁) t (s, s₁) λ t' s' => ∃ s₂', ehp.state_rel s'.2 s₂' ∧ p (ITree.interp (inl_  f) t') (s'.1, s₂') := by
+  intro hrel he
+  apply exec.coind _ λ t s => ∃ s₂, ehp.state_rel s.2 s₂ ∧ exec (ehf ⊕ₑₕ eh₂) (ITree.interp (inl_ f) t) (s.1, s₂) p
+  rotate_left 1; grind
+  rintro t s ⟨s₂, hrel, he⟩
+  cases t <;> simp at he
+  · sorry
+  · -- apply exec.F.tau
+    sorry
+  · sorry
 
-theorem exec_interp σ σ' E' GR (t : ITree (E₁ ⊕ₑ E') GR) p s
-  (ehf : SEHandler E₂ σ) (eh : EHandler E' (E₁ ⊕ₑ E') GR σ') :
-  (exec (ehf ⊕ₑₕ wrapInterpEH f eh) (ITree.interp (inl_ f) t) s p) ↔
-   exec ((interpEH f ehf).toEHandler ⊕ₑₕ eh) t s λ t' s' => p (ITree.interp (inl_ f) t') s' := by
-  constructor
-  · intro he
-    apply exec.coind _ λ t s => exec (ehf ⊕ₑₕ wrapInterpEH f eh) (ITree.interp (inl_ f) t) s p
-    rotate_left 1; grind
-    intro t s he
-    cases t
-    · sorry
-    · sorry
-    · sorry
-  · intro he
-    apply exec.coind _ λ t s =>
-      ∃ t', t = ITree.interp (inl_ f) t' ∧
-      exec ((interpEH f ehf).toEHandler ⊕ₑₕ eh) t' s λ t' s' =>
-        p (ITree.interp (inl_ f) t') s'
-    rotate_left 1; grind
-    rintro _ s ⟨t, rfl, he⟩
-    unfold exec at he
-    cases he
-    · apply exec.F.stop; assumption
-    · simp
+theorem exec_interp_2 σ σ₁ σ₂ E' GR (t : ITree (E₁ ⊕ₑ E') GR) p s s₁ s₂
+  (ehf : SEHandler E₂ σ) (eh₁ : EHandler E' (E₁ ⊕ₑ E') GR σ₁)
+  (eh₂ : EHandler E' (E₂ ⊕ₑ E') GR σ₂)
+  [ehp : EHandlerParametric (ITree.interp (inl_ f) · = ·) eh₁ eh₂]:
+  ehp.state_rel s₁ s₂ →
+  (exec ((interpEH f ehf).toEHandler ⊕ₑₕ eh₁) t (s, s₁) p) →
+  exec (ehf.toEHandler ⊕ₑₕ eh₂) (ITree.interp (inl_ f) t) (s, s₂) λ t' s' =>    ∃ s₁' t'', ehp.state_rel s₁' s'.2 ∧
+    t' = ITree.interp (inl_ f) t'' ∧ p t'' (s'.1, s₁') := by
+  intro hrel he
+  apply exec.strong_coind _ λ t s =>
+    ∃ s₁ t', ehp.state_rel s₁ s.2 ∧ t = ITree.interp (inl_ f) t' ∧
+    exec ((interpEH f ehf).toEHandler ⊕ₑₕ eh₁) t' (s.1, s₁) p
+  rotate_left 1; grind
+  rintro _ s ⟨_, _, hrel, rfl, he⟩
+  unfold exec at he
+  cases he
+  · apply exec.F.stop; grind
+  · simp
+    apply exec.F.tau
+    apply exec.stop
+    grind
+  · rename_i i k hh
+    simp
+    cases i <;> simp [inl_]
+    · -- the tau in inl_ is necessary here
       apply exec.F.tau
-      grind
-    · simp
+      apply exec.bind
+      rw (occs:=[1]) [sumEH] at hh
+      simp at hh
+      rw (occs:=[1]) [interpEH] at hh
+      simp at hh
       sorry
+    · unfold ITree.trigger
+      simp
+      apply exec.F.step
+      rw (occs:=[1]) [sumEH]
+      simp
+      apply EHandler.handle_mono
+      . apply ehp.handle_rel
+        . assumption
+        . intro o; rfl
+        . assumption
+      intro _ _ _
+      apply exec.stop
+      grind
+
 
 end interp
