@@ -4,7 +4,6 @@ import ITree.Effect
 namespace ITree
 open Coinductive Lean.Order
 
--- Definition of ITree
 inductive ITreeF (E : Effect.{u}) (R : Type v) (ITree : Type w) : Type (max u v w) where
   | ret (r : R)
   | tau (t : ITree)
@@ -15,9 +14,8 @@ inductive ITreeF.In (E : Effect.{u}) (R : Type u) : Type u where
   | tau
   | vis (i : E.I)
 
--- `ITreeF` has a `QPF` instance, so it is isomorphic to a polynomial functor.
-instance (E : Effect.{u}) (R : Type u) : QPF (ITreeF E R) where
-  PF := ⟨ITreeF.In E R, fun
+instance (E : Effect.{u}) (R : Type u) : PF (ITreeF E R) where
+  P := ⟨ITreeF.In E R, fun
     | .ret _ => PEmpty
     | .tau => PUnit
     | .vis i => E.O i⟩
@@ -56,7 +54,7 @@ theorem ITree.unfold_fold (t : ITree E R) :
 @[simp]
 theorem ret_approx_1 (r : R) n :
   (ITree.ret (E:=E) r).approx (n + 1) = ITreeF.ret r := by
-    simp [ITree.ret, ITree.fold, CoInd.fold, QPF.map, QPF.pack]
+    simp [ITree.ret, ITree.fold, CoInd.fold, PF.map, PF.pack]
 
 @[simp]
 theorem fold_ret_approx_1 (r : R) n :
@@ -66,7 +64,7 @@ theorem fold_ret_approx_1 (r : R) n :
 @[simp]
 theorem tau_approx_1 (t : ITree E R) n :
   t.tau.approx (n + 1) = ITreeF.tau (t.approx n) := by
-    simp [ITree.tau, ITree.fold, CoInd.fold, QPF.map, QPF.pack]
+    simp [ITree.tau, ITree.fold, CoInd.fold, PF.map, PF.pack]
 
 @[simp]
 theorem fold_tau_approx_1 (t : ITree E R) n :
@@ -76,7 +74,7 @@ theorem fold_tau_approx_1 (t : ITree E R) n :
 @[simp]
 theorem vis_approx_1 i (t : E.O i → ITree E R) n :
   (ITree.vis i t).approx (n + 1) = ITreeF.vis i (λ o => (t o).approx n) := by
-    simp [ITree.vis, ITree.fold, CoInd.fold, QPF.map, QPF.pack]
+    simp [ITree.vis, ITree.fold, CoInd.fold, PF.map, PF.pack]
     rfl
 
 @[simp]
@@ -104,7 +102,7 @@ theorem tau_monoN (t1 t2 : ITree E R) n :
   CoIndN.le _ (t1.tau.approx (n + 1)) (t2.tau.approx (n + 1))
  := by
     intro hs
-    simp [CoIndN.le, QPF.unpack]
+    simp [CoIndN.le, PF.unpack]
     right
     constructor <;> try rfl
     grind [coherent1]
@@ -124,7 +122,7 @@ theorem vis_monoN i (t1 t2 : E.O i → ITree E R) n :
   CoIndN.le _ ((ITree.vis i t1).approx (n + 1)) ((ITree.vis i t2).approx (n + 1))
  := by
     intro hs
-    simp [CoIndN.le, QPF.unpack]
+    simp [CoIndN.le, PF.unpack]
     right
     constructor <;> try rfl
     grind [coherent1]
@@ -150,7 +148,7 @@ theorem ITree.bot_eq :
     ext n
     induction n; congr 0
     rw [CoInd.bot_eq, spin]
-    simp [QPF.map, QPF.pack, CoInd.fold, *]
+    simp [PF.map, PF.pack, CoInd.fold, *]
 
 theorem ITree.le_unfold (t1 t2 : ITree E R) :
   (t1 ⊑ t2) = (t1 = .spin ∨
@@ -163,10 +161,10 @@ theorem ITree.le_unfold (t1 t2 : ITree E R) :
       rw [CoInd.le_unfold] at h
       rcases h with (rfl|⟨i, _, _, _, _, h1, h2⟩); simp
       rw [<-Coinductive.unfold_fold _ t1, <-Coinductive.unfold_fold _ t2]
-      rw [<-QPF.unpack_pack (CoInd.unfold _ t1), <-QPF.unpack_pack (CoInd.unfold _ t2)]
+      rw [<-PF.unpack_pack (CoInd.unfold _ t1), <-PF.unpack_pack (CoInd.unfold _ t2)]
       simp only [h1, h2]
       right
-      cases i <;> simp [QPF.pack, ret, tau, vis, fold]
+      cases i <;> simp [PF.pack, ret, tau, vis, fold]
       · grind
       · grind
       · right
@@ -181,12 +179,12 @@ theorem ITree.le_unfold (t1 t2 : ITree E R) :
       · apply PartialOrder.rel_refl
       · simp [CoInd.le_unfold]
         right
-        simp [QPF.unpack, ITree.tau, ITree.fold]
+        simp [PF.unpack, ITree.tau, ITree.fold]
         constructor <;> try rfl
         grind
       · simp [CoInd.le_unfold]
         right
-        simp [QPF.unpack, ITree.vis, ITree.fold]
+        simp [PF.unpack, ITree.vis, ITree.fold]
         constructor <;> try rfl
         grind
 
