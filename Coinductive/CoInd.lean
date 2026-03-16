@@ -6,11 +6,12 @@ structure PFunctor : Type (u + 1) where
 
 -- naming follows https://eprints.illc.uva.nl/id/eprint/2239/1/MoL-2023-03.text.pdf
 inductive PFunctor.Obj (PF : PFunctor) (α : Type u) : Type u where
-| obj (i : PF.In) (k : PF.Out i → α)
--- necessary to avoid eta expansion on this type
-| obj_dummy (e : Empty)
+  | obj (i : PF.In) (k : PF.Out i → α)
+  -- necessary to avoid eta expansion on this type
+  | obj_dummy (e : Empty)
 
--- This is basically the same as the Qpf in mathlib, except that we don't require F to be a functor and instead require the type to be isomorphic to a polynomial functor
+-- This is essentially the same as `Qpf` in mathlib, except that we do not require `F`
+-- itself to be a functor; instead, we require it to be isomorphic to a polynomial functor.
 class QPF (F : Type u → Type u) where
   PF : PFunctor
   unpack {α} : F α → PF.Obj α
@@ -44,10 +45,14 @@ theorem QPF.map_map {α β γ} (f : α → β) (g : β → γ) x:
     rcases h : unpack x with ⟨i, k⟩ | ⟨⟨⟩⟩
     simp
 
+-- `CoIndN` is the depth-n approxiamation
 def CoIndN : Nat → Type u
+  -- depth `0`: no information
   | 0 => PUnit
+  -- depth `n + 1`: one `F`-layer whose children are only known to depth `n`
   | n + 1 => F (CoIndN n)
 
+-- one-step agreement
 inductive coherent1 {PF : PFunctor} {α1 α2 : Type u} (K : α1 → α2 → Prop) :
   PF.Obj α1 → PF.Obj α2 → Prop where
 | single i i1 i2 k1 k2 :
@@ -70,8 +75,11 @@ def coherent {n m} (c1 : CoIndN F n) (c2 : CoIndN F m) : Prop :=
   | _, 0 => True
   | _+1, _+1 => coherent1 coherent (QPF.unpack c1) (QPF.unpack c2)
 
+-- `CoInd` is the coherent family of all approximations
 structure CoInd : Type u where
+  -- one approximation at every depth
   approx : ∀ n, CoIndN F n
+  -- proofs that all those approximations fit together
   is_coherent : ∀ n m, coherent F (approx n) (approx m)
 
 @[ext]

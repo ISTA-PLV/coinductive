@@ -1,5 +1,7 @@
 namespace ITree
 
+-- An effect signature consists of operation names together with
+-- the return type associated with each operation.
 structure Effect : Type (u + 1) where
   I : Type u
   O : I → Type u
@@ -12,6 +14,8 @@ def SumE (E₁ : Effect.{u}) (E₂ : Effect.{u}) : Effect.{u} where
 
 infixr:30 " ⊕ₑ " => SumE
 
+-- A subeffect embeds each operation of `E₁` into an operation of `E₂`,
+-- together with a translation of returned answers back to the source effect.
 class Subeffect (E₁ : Effect.{u}) (E₂ : Effect.{v}) where
   map : (i₁ : E₁.I) → ((i₂ : E₂.I) × (E₂.O i₂ → E₁.O i₁))
 
@@ -20,13 +24,16 @@ infix:20 " -< " => Subeffect
 instance {E : Effect} : E -< E where
   map i := ⟨i, λ x => x⟩
 
-instance {E₁ : Effect} {E₂ : Effect} {E' : Effect} [subl : E₁ -< E'] [subr : E₂ -< E'] : (E₁ ⊕ₑ E₂) -< E' where
+instance {E₁ : Effect} {E₂ : Effect} {E' : Effect}
+  [subl : E₁ -< E'] [subr : E₂ -< E'] : (E₁ ⊕ₑ E₂) -< E' where
   map
   | .inl x => subl.map x
   | .inr x => subr.map x
 
-instance (priority:=mid) {E₁ : Effect} {E₂ : Effect} {E' : Effect} [sub : E₁ -< E₂] : E₁ -< (E₂ ⊕ₑ E') where
+instance (priority:=mid) {E₁ : Effect} {E₂ : Effect} {E' : Effect}
+  [sub : E₁ -< E₂] : E₁ -< (E₂ ⊕ₑ E') where
   map t := let ⟨i, f⟩ := (sub.map t); ⟨.inl i, f⟩
 
-instance (priority:=low) {E₁ : Effect} {E₂ : Effect} {E' : Effect} [sub : E₁ -< E₂] : E₁ -< E' ⊕ₑ E₂ where
+instance (priority:=low) {E₁ : Effect} {E₂ : Effect} {E' : Effect}
+  [sub : E₁ -< E₂] : E₁ -< E' ⊕ₑ E₂ where
   map t := let ⟨i, f⟩ := (sub.map t); ⟨.inr i, f⟩

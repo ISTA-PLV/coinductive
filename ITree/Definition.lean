@@ -4,6 +4,7 @@ import ITree.Effect
 namespace ITree
 open Coinductive Lean.Order
 
+-- Definition of ITree
 inductive ITreeF (E : Effect.{u}) (R : Type v) (ITree : Type w) : Type (max u v w) where
   | ret (r : R)
   | tau (t : ITree)
@@ -14,6 +15,7 @@ inductive ITreeF.In (E : Effect.{u}) (R : Type u) : Type u where
   | tau
   | vis (i : E.I)
 
+-- `ITreeF` has a `QPF` instance, so it is isomorphic to a polynomial functor.
 instance (E : Effect.{u}) (R : Type u) : QPF (ITreeF E R) where
   PF := ⟨ITreeF.In E R, fun
     | .ret _ => PEmpty
