@@ -1,6 +1,10 @@
 name = "Coinductive"
 version = "0.1.0"
-defaultTargets = ["Coinductive", "Test", "ITree", "HeapLang"]
+defaultTargets = ["Coinductive", "Test", "ITree", "HeapLang", "Carte"]
+
+[[require]]
+name = "iris"
+path = "../iris-lean"
 
 [[lean_lib]]
 name = "Coinductive"
@@ -14,3 +18,6 @@ globs = ["Test.+"]
 
 [[lean_lib]]
 name = "ITree"
+
+[[lean_lib]]
+name = "Carte"
