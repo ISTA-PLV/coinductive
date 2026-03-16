@@ -11,8 +11,8 @@ inductive StreamF.In (α : Type u) : Type u where
   | snil
   | scons (x : α)
 
-instance (α : Type u) : QPF (StreamF α) where
-  PF := ⟨StreamF.In α, fun
+instance (α : Type u) : PF (StreamF α) where
+  P := ⟨StreamF.In α, fun
     | .snil => PEmpty
     | .scons _ => PUnit⟩
   unpack
@@ -33,12 +33,12 @@ def Stream.scons {α : Type u} (hd : α) (tl : Stream α) : Stream α := Stream.
 @[simp]
 theorem snil_approx_1 α n :
   (Stream.snil (α:=α)).approx (n + 1) = StreamF.snil := by
-    simp [Stream.snil, Stream.fold, CoInd.fold, QPF.map, QPF.pack]
+    simp [Stream.snil, Stream.fold, CoInd.fold, PF.map, PF.pack]
 
 @[simp]
 theorem scons_approx_1 α i (s : Stream α) n :
   (Stream.scons i s).approx (n + 1) = StreamF.scons i (s.approx n) := by
-    simp [Stream.scons, Stream.fold, CoInd.fold, QPF.map, QPF.pack]
+    simp [Stream.scons, Stream.fold, CoInd.fold, PF.map, PF.pack]
 
 @[simp]
 theorem unfold_snil α :
@@ -56,7 +56,7 @@ instance : Inhabited (StreamF α PUnit) where default := .snil
 theorem Stream.bot_eq α :
   CoInd.bot (StreamF α) = Stream.snil := by
     rw [CoInd.bot_eq]
-    simp [QPF.map, QPF.pack, Stream.snil, Stream.fold]
+    simp [PF.map, PF.pack, Stream.snil, Stream.fold]
 
 
 theorem Stream.le_unfold α (s1 s2 : Stream α) :
@@ -68,9 +68,9 @@ theorem Stream.le_unfold α (s1 s2 : Stream α) :
       rw [CoInd.le_unfold] at h
       rcases h with (rfl|⟨i, _, _, _, _, h1, h2⟩); simp
       rw [<-unfold_fold _ s1, <-unfold_fold _ s2]
-      rw [<-QPF.unpack_pack s1.unfold, <-QPF.unpack_pack s2.unfold]
+      rw [<-PF.unpack_pack s1.unfold, <-PF.unpack_pack s2.unfold]
       simp only [h1, h2]
-      cases i <;> simp [QPF.pack, snil, scons, fold]
+      cases i <;> simp [PF.pack, snil, scons, fold]
       right
       exists ?_, ?_; rotate_left 1
       constructor; rfl
@@ -81,7 +81,7 @@ theorem Stream.le_unfold α (s1 s2 : Stream α) :
       · simp [CoInd.le_unfold]
       · simp [CoInd.le_unfold]
         right
-        simp [QPF.unpack]
+        simp [PF.unpack]
         constructor <;> try rfl
         grind
 
@@ -91,7 +91,7 @@ theorem scons_monoN α i (s1 s2 : Stream α) n :
     ((Stream.scons i s2).approx (n + 1))
  := by
     intro hs
-    simp [CoIndN.le, QPF.unpack]
+    simp [CoIndN.le, PF.unpack]
     right
     constructor <;> try rfl
     grind [coherent1]

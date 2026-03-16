@@ -11,4 +11,4 @@ settings.json
 .gdb_history
 .vscode
 script/__pycache__
-
+/docs/
