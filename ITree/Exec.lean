@@ -417,6 +417,7 @@ def inl_ {E' : Effect.{u}} :
   | .inl x => ITree.tau (ITree.interp (ITree.trigger E₂) (f x))
   | .inr x => ITree.trigger E' x
 
+/-
 theorem exec_interp_1 σ σ₁ σ₂ E' GR (t : ITree (E₁ ⊕ₑ E') GR) p s s₁ s₂
   (ehf : SEHandler E₂ σ) (eh₁ : EHandler E' (E₁ ⊕ₑ E') GR σ₁)
   (eh₂ : EHandler E' (E₂ ⊕ₑ E') GR σ₂)
@@ -481,5 +482,5 @@ theorem exec_interp_2 σ σ₁ σ₂ E' GR (t : ITree (E₁ ⊕ₑ E') GR) p s s
       -- apply exec.stop
       -- grind
 
-
+-/
 end interp
