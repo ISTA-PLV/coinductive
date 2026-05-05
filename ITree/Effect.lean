@@ -16,6 +16,14 @@ def SumE (E₁ : Effect.{u}) (E₂ : Effect.{u}) : Effect.{u} where
 
 infixr:30 " ⊕ₑ " => SumE
 
+-- we cannot make `SumE` reducible since we want to key on it in TC search,
+-- but we also need to make sure that SumE.O reduces at reducible transparency
+-- thus we add the following unification hints
+unif_hint (E₁ E₂ : Effect.{u}) (T : Type u) (e : E₁.I)  where
+  E₁.O e ≟ T |- (E₁ ⊕ₑ E₂).O (Sum.inl e) ≟ T
+unif_hint (E₁ E₂ : Effect.{u}) (T : Type u) (e : E₂.I)  where
+  E₂.O e ≟ T |- (E₁ ⊕ₑ E₂).O (Sum.inr e) ≟ T
+
 class Subeffect (E₁ : Effect.{u}) (E₂ : Effect.{v}) where
   map : (i₁ : E₁.I) → ((i₂ : E₂.I) × (E₂.O i₂ → E₁.O i₁))
 
