@@ -12,6 +12,9 @@ def demonicE (α : Type u) : Effect.{u} where
   I := ((p : α → Prop) × (DecidablePred p) × (Inhabited {x : α // p x}))
   O p := {a // p.1 a}
 
+unif_hint (α : Type _) (x : (demonicE α).I)  where
+  |- (demonicE α).O x ≟ {a // x.1 a}
+
 def DemonicE.choose {α : Type u} {E : Effect.{u}} [demonicE α -< E] (p : α → Prop) [hp : DecidablePred p] [hi : Inhabited {x : α // p x}] : ITree E {a // p a} :=
    (demonicE α).trigger ⟨p, hp, hi⟩
 export DemonicE (choose)

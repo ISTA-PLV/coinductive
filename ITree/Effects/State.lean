@@ -12,6 +12,9 @@ def stateE (α : Type u) : Effect.{u} where
   I := (α → α)
   O _ := α
 
+unif_hint (α : Type _) (x : (stateE α).I)  where
+  |- (stateE α).O x ≟ α
+
 def StateE.modify {α : Type u} {E} [stateE α -< E] (f : α → α) : ITree E α :=
   (stateE α).trigger f
 

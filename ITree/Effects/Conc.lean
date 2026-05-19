@@ -22,6 +22,14 @@ def concE : Effect.{u} where
   | .kill => PEmpty
   | .yield => PUnit
 
+universe u
+unif_hint where
+  |- concE.{u}.O .fork ≟ ForkResult.{u}
+unif_hint where
+  |- concE.{u}.O .kill ≟ PEmpty
+unif_hint where
+  |- concE.{u}.O .yield ≟ PUnit
+
 def ConcE.kill {E} [concE -< E] : ITree E α :=
   concE.trigger (.kill) >>= nofun
 export ConcE (kill)

@@ -36,6 +36,16 @@ theorem exec_fail {α : Type u} {GE : Effect.{u}} {GR σ p q s}
   apply exec.trigger failEH.toEHandler
   simp [failEH]
 
+theorem exec_assert {E : Effect} {σ : Type _}
+    (EH : EHandler E E PUnit σ) [failE -< E] [InEH failEH.toEHandler EH]
+    (P : Prop) [Decidable P] (s : σ) (C : ITree E PUnit → σ → Prop) :
+    (P → C (ITree.ret ⟨⟩) s) →
+    exec EH (FailE.assert P) s C := by
+  intro hC; unfold FailE.assert
+  by_cases h : P
+  · simp [h]; apply exec.stop; exact hC h
+  · simp [h, FailE.fail]; apply exec.trigger failEH.toEHandler; simp [failEH]
+
 end Exec
 
 section Eval
