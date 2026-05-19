@@ -13,7 +13,7 @@ def haltE : Effect.{u} where
   O _ := PEmpty
 
 def HaltE.halt {α} {E : Effect.{u}} [haltE -< E] : ITree E α :=
-  .trigger haltE ⟨⟩ >>= nofun
+  haltE.trigger ⟨⟩ >>= nofun
 export HaltE (halt)
 
 def HaltE.assume {E : Effect.{u}} [haltE -< E] (P : Prop) [Decidable P] : ITree E {_x : PUnit.{u+1} // P} :=

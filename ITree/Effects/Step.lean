@@ -13,7 +13,7 @@ def stepE : Effect.{u} where
   O _ := PUnit
 
 def StepE.step {E : Effect.{u}} [stepE -< E] : ITree E PUnit :=
-  .trigger stepE ⟨⟩
+  stepE.trigger ⟨⟩
 export StepE (step)
 
 section exec

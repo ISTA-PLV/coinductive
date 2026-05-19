@@ -176,8 +176,8 @@ section exec
 theorem exec.trigger {E GE : Effect.{u}} {GR : Type u} {σ Gσ : Type v} {i : E.I} {k : E.O i → ITree GE GR} {s p}
   [E -< GE] (eh : EHandler E GE GR σ) (ehg : EHandler GE GE GR Gσ) [hin : InEH eh ehg] :
     eh.handle i (hin.getState s) k (λ t' s' => p t' (hin.putState s' s)) →
-    exec ehg (ITree.trigger E i >>= k) s p := by
-  intros h; simp [ITree.trigger]
+    exec ehg (E.trigger i >>= k) s p := by
+  intros h; simp [Effect.trigger]
   apply exec.step
   have hi := hin.isIn _ _ _ _ h
   dsimp only at hi
@@ -380,7 +380,7 @@ theorem exec_interpEH {GE : Effect.{u}} GR σ σ₂ (ehf : SEHandler E₂ σ₂)
     {k : E₁.O i → ITree GE GR}
     [E₁ -< GE] (eh : EHandler GE GE GR σ) [hin : InEH (interpEH f ehf).toEHandler eh] :
       (exec ehf (f i) (hin.getState s) λ r s' => ∃ v, r = pure v ∧ exec eh (k v) (hin.putState s' s) p) →
-      exec eh (ITree.trigger E₁ i >>= k) s p := by
+      exec eh (E₁.trigger i >>= k) s p := by
   rintro he
   apply exec.dup
   apply exec.trigger (interpEH f ehf).toEHandler
@@ -414,8 +414,8 @@ class EHandlerParametric {E GR σ₁ σ₂ GE₁ GE₂}
 def inl_ {E' : Effect.{u}} :
   (i : (E₁ ⊕ₑ E').I) → ITree (E₂ ⊕ₑ E') ((E₁ ⊕ₑ E').O i)
   -- The tau is necessary to ensure that we always do at least one step when interpreting
-  | .inl x => ITree.tau (ITree.interp (ITree.trigger E₂) (f x))
-  | .inr x => ITree.trigger E' x
+  | .inl x => ITree.tau (ITree.interp (E₂.trigger) (f x))
+  | .inr x => E'.trigger x
 
 /-
 theorem exec_interp_1 σ σ₁ σ₂ E' GR (t : ITree (E₁ ⊕ₑ E') GR) p s s₁ s₂

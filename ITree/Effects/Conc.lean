@@ -23,11 +23,11 @@ def concE : Effect.{u} where
   | .yield => PUnit
 
 def ConcE.kill {E} [concE -< E] : ITree E α :=
-  .trigger concE (.kill) >>= nofun
+  concE.trigger (.kill) >>= nofun
 export ConcE (kill)
 
 def ConcE.fork {E} [concE -< E] (child : ITree E PUnit) : ITree E PUnit :=
-  .trigger concE (.fork) >>= λ
+  concE.trigger (.fork) >>= λ
     | .child => child >>= λ _ => kill
     | .parent => return ⟨⟩
 export ConcE (fork)
@@ -43,7 +43,7 @@ theorem fork_mono [concE -< E] α [PartialOrder α] (f : α → ITree E PUnit) :
     apply monotone_bind <;> simp [*, monotone_const]
 
 def ConcE.yield {E} [concE -< E] : ITree E PUnit :=
-  .trigger concE (.yield)
+  concE.trigger (.yield)
 export ConcE (yield)
 
 def ConcE.yieldAfter [concE -< E] (t : ITree E R) := do

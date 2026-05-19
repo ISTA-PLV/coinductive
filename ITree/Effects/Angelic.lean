@@ -13,7 +13,7 @@ def angelicE (α : Type u) : Effect.{u} where
   O p := {a // p a}
 
 def AngelicE.choose_angelic {α : Type u} {E : Effect.{u}} [angelicE α -< E] (p : α → Prop) : ITree E {a // p a} :=
-  .trigger (angelicE α) p
+  (angelicE α).trigger p
 export AngelicE (choose_angelic)
 
 section exec

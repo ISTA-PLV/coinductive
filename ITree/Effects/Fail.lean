@@ -13,7 +13,7 @@ def failE : Effect.{u} where
   O _ := PEmpty
 
 def FailE.fail {α : Type u} {E} [failE -< E] (s : String) : ITree.{u} E α :=
-  .trigger (failE) (ULift.up s) >>= nofun
+  (failE).trigger (ULift.up s) >>= nofun
 export FailE (fail)
 
 def FailE.assert {E} [failE -< E] (P : Prop) [Decidable P] : ITree.{u} E PUnit :=

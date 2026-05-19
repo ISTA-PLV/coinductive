@@ -13,7 +13,7 @@ def stateE (α : Type u) : Effect.{u} where
   O _ := α
 
 def StateE.modify {α : Type u} {E} [stateE α -< E] (f : α → α) : ITree E α :=
-  .trigger (stateE α) f
+  (stateE α).trigger f
 
 def StateE.get {α : Type u} {E} [stateE α -< E] : ITree E α :=
   modify id

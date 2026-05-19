@@ -13,7 +13,7 @@ def demonicE (α : Type u) : Effect.{u} where
   O p := {a // p.1 a}
 
 def DemonicE.choose {α : Type u} {E : Effect.{u}} [demonicE α -< E] (p : α → Prop) [hp : DecidablePred p] [hi : Inhabited {x : α // p x}] : ITree E {a // p a} :=
-  .trigger (demonicE α) ⟨p, hp, hi⟩
+   (demonicE α).trigger ⟨p, hp, hi⟩
 export DemonicE (choose)
 
 section exec

@@ -15,7 +15,7 @@ def logE (α : Type u) : Effect.{u} where
   O _ := PUnit
 
 def LogE.log {α : Type u} {E} [logE α -< E] (a : α) : ITree.{u} E PUnit :=
-  .trigger (logE α) (a)
+  (logE α).trigger (a)
 export LogE (log)
 
 section Eval

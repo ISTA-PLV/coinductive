@@ -325,7 +325,7 @@ theorem vis_bind i k (t : S → ITree E R) :
   (.vis i k) >>= t = .vis i (λ o => k o >>= t) := by simp [Bind.bind]
 
 
-def ITree.trigger (E₁ : Effect.{u}) {E₂ : Effect.{u}} [E₁ -< E₂] (i : E₁.I) : ITree.{u} E₂ (E₁.O i) :=
+def Effect.trigger (E₁ : Effect.{u}) {E₂ : Effect.{u}} [E₁ -< E₂] (i : E₁.I) : ITree.{u} E₂ (E₁.O i) :=
   let ⟨i₂, f⟩ := (Subeffect.map i);
   ITree.vis i₂ (λ x => return (f x))
 
