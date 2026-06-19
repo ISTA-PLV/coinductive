@@ -336,6 +336,12 @@ def ITree.iter {α β} (t : α → ITree E (α ⊕ β)) : α → ITree E β :=
     | .inr b => return b
 partial_fixpoint
 
+/--
+Intepret an `ITree E R` into an `ITree` with a different type of effects `F`.
+
+See also `ITree.interpM` for an alternative which interpretes effects into a
+generic monad `m`.
+-/
 def ITree.interp {F} (f : (i : E.I) → ITree F (E.O i)) : ITree E R → ITree F R :=
   ITree.iter λ t =>
     match t.unfold with
