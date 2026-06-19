@@ -37,8 +37,8 @@ instance {E₁ : Effect} {E₂ : Effect} {E' : Effect} [subl : E₁ -< E'] [subr
   | .inl x => subl.map x
   | .inr x => subr.map x
 
-instance (priority:=mid) {E₁ : Effect} {E₂ : Effect} {E' : Effect} [sub : E₁ -< E₂] : E₁ -< (E₂ ⊕ₑ E') where
+instance (priority:=mid) instSubSumL {E₁ : Effect} {E₂ : Effect} {E' : Effect} [sub : E₁ -< E₂] : E₁ -< (E₂ ⊕ₑ E') where
   map t := let ⟨i, f⟩ := (sub.map t); ⟨.inl i, f⟩
 
-instance (priority:=low) {E₁ : Effect} {E₂ : Effect} {E' : Effect} [sub : E₁ -< E₂] : E₁ -< E' ⊕ₑ E₂ where
+instance (priority:=low) instSubSumR {E₁ : Effect} {E₂ : Effect} {E' : Effect} [sub : E₁ -< E₂] : E₁ -< E' ⊕ₑ E₂ where
   map t := let ⟨i, f⟩ := (sub.map t); ⟨.inr i, f⟩

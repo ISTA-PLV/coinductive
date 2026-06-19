@@ -59,7 +59,7 @@ theorem ITree.unfold_fold (t : ITree E R) :
 @[simp]
 theorem ret_approx_1 (r : R) n :
   (ITree.ret (E:=E) r).approx (n + 1) = ITreeF.ret r := by
-    simp [ITree.ret, ITree.fold, CoInd.fold, PF.map, PF.pack]
+    simp [ITree.ret, ITree.fold, CoInd.fold, PF.map, PF.pack, PF.unpack]
 
 @[simp]
 theorem fold_ret_approx_1 (r : R) n :
@@ -69,7 +69,7 @@ theorem fold_ret_approx_1 (r : R) n :
 @[simp]
 theorem tau_approx_1 (t : ITree E R) n :
   t.tau.approx (n + 1) = ITreeF.tau (t.approx n) := by
-    simp [ITree.tau, ITree.fold, CoInd.fold, PF.map, PF.pack]
+    simp [ITree.tau, ITree.fold, CoInd.fold, PF.map, PF.pack, PF.unpack]
 
 @[simp]
 theorem fold_tau_approx_1 (t : ITree E R) n :
@@ -153,7 +153,7 @@ theorem ITree.bot_eq :
     ext n
     induction n; congr 0
     rw [CoInd.bot_eq, spin]
-    simp [PF.map, PF.pack, CoInd.fold, *]
+    simp [PF.map, PF.pack, CoInd.fold, *, PF.unpack, default]
 
 theorem ITree.le_unfold (t1 t2 : ITree E R) :
   (t1 ⊑ t2) = (t1 = .spin ∨

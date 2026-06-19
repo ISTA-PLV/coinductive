@@ -35,12 +35,12 @@ def Stream.scons {α : Type u} (hd : α) (tl : Stream α) : Stream α := Stream.
 @[simp]
 theorem snil_approx_1 α n :
   (Stream.snil (α:=α)).approx (n + 1) = StreamF.snil := by
-    simp [Stream.snil, Stream.fold, CoInd.fold, PF.map, PF.pack]
+    simp [Stream.snil, Stream.fold, CoInd.fold, PF.map, PF.pack, PF.unpack]
 
 @[simp]
 theorem scons_approx_1 α i (s : Stream α) n :
   (Stream.scons i s).approx (n + 1) = StreamF.scons i (s.approx n) := by
-    simp [Stream.scons, Stream.fold, CoInd.fold, PF.map, PF.pack]
+    simp [Stream.scons, Stream.fold, CoInd.fold, PF.map, PF.pack, PF.unpack]
 
 @[simp]
 theorem unfold_snil α :
@@ -58,7 +58,7 @@ instance : Inhabited (StreamF α PUnit) where default := .snil
 theorem Stream.bot_eq α :
   CoInd.bot (StreamF α) = Stream.snil := by
     rw [CoInd.bot_eq]
-    simp [PF.map, PF.pack, Stream.snil, Stream.fold]
+    simp [PF.map, PF.pack, Stream.snil, Stream.fold, PF.unpack, default]
 
 
 theorem Stream.le_unfold α (s1 s2 : Stream α) :

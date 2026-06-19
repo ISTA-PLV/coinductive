@@ -324,8 +324,11 @@ instance (priority:=mid) sumInSEHL {E₁ E₂ E₃ GE : Effect.{u}} {GR σ₁ σ
   isIn := by
     intros i s₂₃ k p h; simp at *;
     have h' := hin.isIn i (s₂₃.fst) k (λ t s₂ => p t ⟨s₂, s₂₃.snd⟩) h
+    simp at h'
     apply SEHandler.handle_mono; assumption
-    grind
+    intro _ _ _
+    unfold instSubSumL
+    simp [*]
 
 instance (priority:=low) sumInSEHR {E₁ E₂ E₃ GE : Effect.{u}} {GR σ₁ σ₂ σ₃ : Type u} [E₁ -< E₃] (eh₁ : EHandler E₁ GE GR σ₁) (eh₂ : SEHandler E₂ σ₂) (eh₃ : SEHandler E₃ σ₃)
     [hin : InEH eh₁ eh₃.toEHandler] :
@@ -337,8 +340,11 @@ instance (priority:=low) sumInSEHR {E₁ E₂ E₃ GE : Effect.{u}} {GR σ₁ σ
   isIn := by
     intros i s₂₃ k p h; simp at *;
     have h' := hin.isIn i (s₂₃.snd) k (λ t s₃ => p t ⟨s₂₃.fst, s₃⟩) h
+    simp at h'
     apply SEHandler.handle_mono; assumption
-    grind
+    intro _ _ _
+    unfold instSubSumR
+    simp [*]
 
 /-- EHandler isomorphism -/
 structure Iso (α β : Type _) where
