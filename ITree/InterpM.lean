@@ -120,6 +120,10 @@ variable [LawfulMonad m] [LawfulMonadIter m] (h : (i : E.I) → m (E.O i))
     interpM h (ret r) = return r := by
   rw [interpM, LawfulMonadIter.iter_eq]; simp
 
+@[simp, grind =] theorem interpM_pure (r : R) :
+    interpM h (pure r) = return r :=
+  interpM_ret ..
+
 @[simp, grind =] theorem interpM_tau (t : ITree E R) :
     interpM h (tau t) = interpM h t := by
   rw [interpM, LawfulMonadIter.iter_eq]; simp
