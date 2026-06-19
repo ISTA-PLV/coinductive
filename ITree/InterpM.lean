@@ -105,6 +105,10 @@ namespace ITree
 /--
 Map an `ITree E R` into a generic monad `m` equiped with a `MonadIter` instance,
 using handler `h` to interpret effects.
+
+See also `ITree.interp` for a specialization where the target monad is an `ITree`,
+do note that `interp` and `interpM (m := ITree _)` differ slightly in how they
+handle `tau`s in the given `ITree`.
 -/
 def interpM (h : (i : E.I) → m (E.O i)) : ITree E R → m R :=
   MonadIter.iter fun t =>
