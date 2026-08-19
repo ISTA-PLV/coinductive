@@ -1,3 +1,4 @@
+/- SPDX-License-Identifier: Apache-2.0 -/
 module
 
 -- TODO: can we make this a non-public import and hide all CoInd things from clients of this?
