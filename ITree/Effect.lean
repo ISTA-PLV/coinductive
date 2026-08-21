@@ -9,6 +9,10 @@ structure Effect : Type (u + 1) where
   I : Type u
   O : I → Type u
 
+/-- This `CoeSort` instance lets us write `e : E` to implicitly mean `e : E.I` -/
+instance : CoeSort Effect.{u} (Type u) where
+  coe E := E.I
+
 def SumE (E₁ : Effect.{u}) (E₂ : Effect.{u}) : Effect.{u} where
   I := E₁.I ⊕ E₂.I
   O
