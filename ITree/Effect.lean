@@ -24,6 +24,8 @@ unif_hint (E₁ E₂ : Effect.{u}) (T : Type u) (e : E₁.I)  where
   E₁.O e ≟ T |- (E₁ ⊕ₑ E₂).O (Sum.inl e) ≟ T
 unif_hint (E₁ E₂ : Effect.{u}) (T : Type u) (e : E₂.I)  where
   E₂.O e ≟ T |- (E₁ ⊕ₑ E₂).O (Sum.inr e) ≟ T
+unif_hint (E₁ E₂ E₃ : Effect.{u}) (T : Type u) (e : E₂.I) where
+  E₂.O e ≟ T |- (E₁ ⊕ₑ E₂ ⊕ₑ E₃).O (Sum.inr (Sum.inl e)) ≟ T
 
 class Subeffect (E₁ : Effect.{u}) (E₂ : Effect.{v}) where
   map : (i₁ : E₁.I) → ((i₂ : E₂.I) × (E₂.O i₂ → E₁.O i₁))

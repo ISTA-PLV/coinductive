@@ -23,7 +23,7 @@ export AngelicE (choose_angelic)
 section exec
 open ITree.Exec
 
-def angelicEH (α : Type _) : SEHandler (angelicE α) PUnit where
+@[implicit_reducible] def angelicEH (α : Type _) : SEHandler (angelicE α) PUnit where
   handle i s p := ∀ x, ∀ (h : i x), p ⟨_, h⟩ s
   handle_mono := by grind
 
@@ -35,6 +35,6 @@ theorem exec_choose_angelic {α : Type u} {GE : Effect.{u}} {GR σ p q s}
   intro he; unfold choose_angelic
   apply exec.dup
   apply exec.trigger (angelicEH α).toEHandler
-  simp_all [angelicEH]
+  simp_all only [angelicEH, InEH.put_get, implies_true]
 
 end exec

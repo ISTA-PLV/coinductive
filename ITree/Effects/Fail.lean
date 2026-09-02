@@ -35,7 +35,7 @@ theorem exec_fail {α : Type u} {GE : Effect.{u}} {GR σ p q s}
   unfold fail
   simp only [bind_assoc]
   apply exec.trigger failEH.toEHandler
-  simp [failEH]
+  simp only [failEH]
 
 theorem exec_assert {E : Effect} {σ : Type _}
     (EH : EHandler E E PUnit σ) [failE -< E] [InEH failEH.toEHandler EH]
@@ -45,7 +45,7 @@ theorem exec_assert {E : Effect} {σ : Type _}
   intro hC; unfold FailE.assert
   by_cases h : P
   · simp [h]; apply exec.stop; exact hC h
-  · simp [h, FailE.fail]; apply exec.trigger failEH.toEHandler; simp [failEH]
+  · simp [h, FailE.fail]; apply exec.trigger failEH.toEHandler; simp only [failEH]
 
 end Exec
 

@@ -23,7 +23,7 @@ export DemonicE (choose)
 section exec
 open ITree.Exec
 
-def demonicEH (α : Type _) : SEHandler (demonicE α) PUnit where
+@[implicit_reducible] def demonicEH (α : Type _) : SEHandler (demonicE α) PUnit where
   handle i s p := ∃ x, ∃ (h : i.1 x), p ⟨_, h⟩ s
   handle_mono := by grind
 
