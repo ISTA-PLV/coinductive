@@ -37,7 +37,7 @@ instance [stateE α -< E] : MonadStateOf α (ITree E) where
 section exec
 open ITree.Exec
 
-def stateEH (α : Type u) : SEHandler (stateE α) α where
+@[implicit_reducible] def stateEH (α : Type u) : SEHandler (stateE α) α where
   handle i s p := p s (i s)
   handle_mono := by grind
 

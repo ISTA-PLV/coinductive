@@ -23,7 +23,7 @@ export AngelicE (choose_angelic)
 section exec
 open ITree.Exec
 
-def angelicEH (α : Type _) : SEHandler (angelicE α) PUnit where
+@[implicit_reducible] def angelicEH (α : Type _) : SEHandler (angelicE α) PUnit where
   handle i s p := ∀ x, ∀ (h : i x), p ⟨_, h⟩ s
   handle_mono := by grind
 

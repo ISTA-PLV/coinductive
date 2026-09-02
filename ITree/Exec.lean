@@ -29,7 +29,7 @@ structure SEHandler (E : Effect.{u}) (σ : Type v) where
 attribute [simp] EHandler.handle
 attribute [simp] SEHandler.handle
 
-@[coe]
+@[coe, reducible]
 def SEHandler.toEHandler {E GE : Effect.{u}} {GR σ : Type u} (eh : SEHandler E σ)
     : EHandler E GE GR σ where
   handle i s k p := eh.handle i s (λ o s' => p (k o) s')
