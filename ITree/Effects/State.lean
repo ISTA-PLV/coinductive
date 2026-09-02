@@ -49,7 +49,7 @@ theorem exec_stateE_get {α : Type u} {GE : Effect.{u}} GR σ p s
   rintro he; simp [StateE.get]
   apply exec.dup
   apply exec.trigger (stateEH _).toEHandler
-  simp_all [stateEH]
+  simp_all only [stateEH, id_eq, InEH.put_get]
 
 theorem exec_get {α : Type u} {GE : Effect.{u}} GR σ p s
     {k : α → ITree GE GR}
@@ -65,7 +65,7 @@ theorem exec_stateE_set {α : Type u} {GE : Effect.{u}} GR σ p s (s' : α)
   rintro he; simp [StateE.set]
   apply exec.dup
   apply exec.trigger (stateEH _).toEHandler
-  simp_all [stateEH]
+  simp_all only [stateEH]
 
 theorem exec_set {α : Type u} {GE : Effect.{u}} GR σ p s (s' : α)
     {k : PUnit → ITree GE GR}

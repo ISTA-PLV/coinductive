@@ -42,7 +42,7 @@ instance {E GE GR σ} : Coe (SEHandler E σ) (EHandler E GE GR σ) where
 @[simp]
 theorem seh_to_ehandler_handle_eq_seh_handle {E GE : Effect.{u}} GR (eh : SEHandler E σ) i s k p:
     eh.toEHandler.handle (GE:=GE) (GR:=GR) i s k p = eh.handle i s (λ o s' => p (k o) s') := by
-  apply propext; simp [SEHandler.toEHandler]
+  apply propext; simp only
 
 /-- Inclusion of EHandlers -/
 class InEH {E₁ E₂ GE : Effect.{u}} {GR : Type u} {σ₁ σ₂ : Type v} [sub : E₁ -< E₂]
