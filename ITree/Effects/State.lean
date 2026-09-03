@@ -9,7 +9,8 @@ public import ITree.Exec
 @[expose] public section
 namespace ITree.Effects
 
-@[implicit_reducible] def stateE (α : Type u) : Effect.{u} where
+@[implicit_reducible]
+def stateE (α : Type u) : Effect.{u} where
   I := (α → α)
   O _ := α
 
@@ -41,8 +42,6 @@ def stateEH (α : Type u) : SEHandler (stateE α) α where
   handle i s p := p s (i s)
   handle_mono := by grind
 
-/-- Unfold only the `handle` field of `stateEH`. Unfolding `stateEH` itself would also
-rewrite the handler arguments of `InEH.getState`/`InEH.putState`, which blocks `InEH.put_get`. -/
 @[simp]
 theorem stateEH_handle {α : Type u} (i : α → α) s p :
     (stateEH α).handle i s p = p s (i s) := rfl

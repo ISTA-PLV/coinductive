@@ -9,7 +9,8 @@ public import ITree.Exec
 @[expose] public section
 namespace ITree.Effects
 
-@[implicit_reducible] def demonicE (α : Type u) : Effect.{u} where
+@[implicit_reducible]
+def demonicE (α : Type u) : Effect.{u} where
   I := ((p : α → Prop) × (DecidablePred p) × (Inhabited {x : α // p x}))
   O p := {a // p.1 a}
 
@@ -27,8 +28,6 @@ def demonicEH (α : Type _) : SEHandler (demonicE α) PUnit where
   handle i s p := ∃ x, ∃ (h : i.1 x), p ⟨_, h⟩ s
   handle_mono := by grind
 
-/-- Unfold only the `handle` field of `demonicEH`. Unfolding `demonicEH` itself would also
-rewrite the handler arguments of `InEH.getState`/`InEH.putState`, which blocks `InEH.put_get`. -/
 @[simp]
 theorem demonicEH_handle {α : Type _}
     (i : (p : α → Prop) × (DecidablePred p) × (Inhabited {x : α // p x})) s p :

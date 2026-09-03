@@ -9,7 +9,8 @@ public import ITree.Exec
 @[expose] public section
 namespace ITree.Effects
 
-@[implicit_reducible] def stepE : Effect.{u} where
+@[implicit_reducible]
+def stepE : Effect.{u} where
   I := PUnit
   O _ := PUnit
 

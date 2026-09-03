@@ -7,6 +7,7 @@ public import ITree.Definition
 @[expose] public section
 namespace ITree.Effects
 
-@[implicit_reducible] def emptyE : Effect.{u} where
+@[implicit_reducible]
+def emptyE : Effect.{u} where
   I := PEmpty.{u+1}
   O := nofun
