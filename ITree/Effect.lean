@@ -9,7 +9,10 @@ structure Effect : Type (u + 1) where
   I : Type u
   O : I → Type u
 
-def SumE (E₁ : Effect.{u}) (E₂ : Effect.{u}) : Effect.{u} where
+-- `implicit_reducible` (and not `reducible`) so that `SumE.I`/`SumE.O` reduce when implicit
+-- arguments are checked for defeq, without exposing `SumE` to type class search. All `Effect`
+-- definitions below and in `ITree.Effects` follow the same pattern.
+@[implicit_reducible] def SumE (E₁ : Effect.{u}) (E₂ : Effect.{u}) : Effect.{u} where
   I := E₁.I ⊕ E₂.I
   O
   | .inl i => E₁.O i

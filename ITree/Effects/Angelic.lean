@@ -9,7 +9,7 @@ public import ITree.Exec
 
 namespace ITree.Effects
 
-def angelicE (α : Type u) : Effect.{u} where
+@[implicit_reducible] def angelicE (α : Type u) : Effect.{u} where
   I := (α → Prop)
   O p := {a // p a}
 
@@ -27,6 +27,12 @@ def angelicEH (α : Type _) : SEHandler (angelicE α) PUnit where
   handle i s p := ∀ x, ∀ (h : i x), p ⟨_, h⟩ s
   handle_mono := by grind
 
+/-- Unfold only the `handle` field of `angelicEH`. Unfolding `angelicEH` itself would also
+rewrite the handler arguments of `InEH.getState`/`InEH.putState`, which blocks `InEH.put_get`. -/
+@[simp]
+theorem angelicEH_handle {α : Type _} (i : α → Prop) s p :
+    (angelicEH α).handle i s p = ∀ x, ∀ (h : i x), p ⟨_, h⟩ s := rfl
+
 theorem exec_choose_angelic {α : Type u} {GE : Effect.{u}} {GR σ p q s}
     {k : {x : α // q x} → ITree GE GR} [angelicE α -< GE]
     (eh : EHandler GE GE GR σ) [hin : InEH (angelicEH α).toEHandler eh]
@@ -35,6 +41,6 @@ theorem exec_choose_angelic {α : Type u} {GE : Effect.{u}} {GR σ p q s}
   intro he; unfold choose_angelic
   apply exec.dup
   apply exec.trigger (angelicEH α).toEHandler
-  simp_all [angelicEH]
+  simp_all
 
 end exec

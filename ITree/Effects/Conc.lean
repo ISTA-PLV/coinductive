@@ -16,7 +16,7 @@ inductive ForkResult : Type u
 inductive concE.I : Type u where
 | fork | kill | yield
 
-def concE : Effect.{u} where
+@[implicit_reducible] def concE : Effect.{u} where
   I := concE.I
   O
   | .fork => ForkResult

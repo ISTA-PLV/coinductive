@@ -9,7 +9,7 @@ public import ITree.Exec
 @[expose] public section
 namespace ITree.Effects
 
-def haltE : Effect.{u} where
+@[implicit_reducible] def haltE : Effect.{u} where
   I := PUnit
   O _ := PEmpty
 
