@@ -9,6 +9,7 @@ public import ITree.Exec
 @[expose] public section
 namespace ITree.Effects
 
+@[implicit_reducible]
 def stateE (α : Type u) : Effect.{u} where
   I := (α → α)
   O _ := α
@@ -41,6 +42,10 @@ def stateEH (α : Type u) : SEHandler (stateE α) α where
   handle i s p := p s (i s)
   handle_mono := by grind
 
+@[simp]
+theorem stateEH_handle {α : Type u} (i : α → α) s p :
+    (stateEH α).handle i s p = p s (i s) := rfl
+
 theorem exec_stateE_get {α : Type u} {GE : Effect.{u}} GR σ p s
     {k : α → ITree GE GR}
     [stateE α -< GE] (eh : EHandler GE GE GR σ) [hin : InEH (stateEH α).toEHandler eh]
@@ -49,7 +54,7 @@ theorem exec_stateE_get {α : Type u} {GE : Effect.{u}} GR σ p s
   rintro he; simp [StateE.get]
   apply exec.dup
   apply exec.trigger (stateEH _).toEHandler
-  simp_all [stateEH]
+  simp_all
 
 theorem exec_get {α : Type u} {GE : Effect.{u}} GR σ p s
     {k : α → ITree GE GR}
@@ -65,7 +70,7 @@ theorem exec_stateE_set {α : Type u} {GE : Effect.{u}} GR σ p s (s' : α)
   rintro he; simp [StateE.set]
   apply exec.dup
   apply exec.trigger (stateEH _).toEHandler
-  simp_all [stateEH]
+  simp_all
 
 theorem exec_set {α : Type u} {GE : Effect.{u}} GR σ p s (s' : α)
     {k : PUnit → ITree GE GR}

@@ -9,6 +9,7 @@ public import ITree.Eval
 @[expose] public section
 namespace ITree.Effects
 
+@[implicit_reducible]
 def failE : Effect.{u} where
   I := ULift String
   O _ := PEmpty

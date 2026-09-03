@@ -9,6 +9,7 @@ public import ITree.Exec
 @[expose] public section
 namespace ITree.Effects
 
+@[implicit_reducible]
 def demonicE (α : Type u) : Effect.{u} where
   I := ((p : α → Prop) × (DecidablePred p) × (Inhabited {x : α // p x}))
   O p := {a // p.1 a}
@@ -27,6 +28,11 @@ def demonicEH (α : Type _) : SEHandler (demonicE α) PUnit where
   handle i s p := ∃ x, ∃ (h : i.1 x), p ⟨_, h⟩ s
   handle_mono := by grind
 
+@[simp]
+theorem demonicEH_handle {α : Type _}
+    (i : (p : α → Prop) × (DecidablePred p) × (Inhabited {x : α // p x})) s p :
+    (demonicEH α).handle i s p = ∃ x, ∃ (h : i.1 x), p ⟨_, h⟩ s := rfl
+
 theorem exec_choose {α : Type u} {GE : Effect.{u}} {GR σ p q s}
     {k : {x : α // q x} → ITree GE GR} x h [demonicE α -< GE]
     [DecidablePred q] [Inhabited {x : α // q x}]
@@ -36,7 +42,7 @@ theorem exec_choose {α : Type u} {GE : Effect.{u}} {GR σ p q s}
   intro he; unfold choose
   apply exec.dup
   apply exec.trigger (demonicEH α).toEHandler
-  simp_all [demonicEH]
+  simp_all
   exists ?_, ?_ <;> try assumption
 
 end exec

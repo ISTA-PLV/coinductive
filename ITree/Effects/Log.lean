@@ -11,6 +11,7 @@ public import ITree.Eval
 namespace ITree.Effects
 open Lean
 
+@[implicit_reducible]
 def logE (α : Type u) : Effect.{u} where
   I := α
   O _ := PUnit

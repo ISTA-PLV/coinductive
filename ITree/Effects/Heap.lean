@@ -50,7 +50,7 @@ def HeapE.load! [heapE Loc Val -< E] [failE -< E] (l : Loc) : ITree E Val := do
 export HeapE (load!)
 
 /- TODO: can we make this an instance? -/
-@[reducible]
+@[instance_reducible]
 def inhabited_free_locs {n} (hmap : heapE.T Loc Val) [Zero Loc] [HAdd Loc Int Loc] [Std.LawfulEqOrd Loc] (hlt : ∀ (l : Loc) (m : Nat), ¬(compare (l + (1 : Int) + (m : Int)) l).isLE) : Inhabited { l // ∀ (m : Nat), m < n → (l : Loc) + (m : Int) ∉ hmap } where
   default := ⟨match hmap.maxKey? with | some n => n + (1 : Int) | none => 0, by
     intro m hm
