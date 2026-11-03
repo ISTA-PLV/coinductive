@@ -9,6 +9,23 @@ namespace HeapLang
 
 open ITree ITree.Effects ITree.Exec
 
+/-- Integer-backed locations satisfy the generic heap-allocation laws. -/
+instance : LawfulLoc Loc where
+  toZero := inferInstance
+  toHAdd := inferInstance
+  decEq := inferInstance
+  add_zero l := by
+    apply Loc.ext
+    simp [loc_add_n]
+  add_nat_inj l := by
+    intro i j h
+    have h' := congrArg Loc.n h
+    simp [loc_add_n] at h'
+    omega
+  add_pos_nle l m := by
+    simp [compare, compareOfLessAndEq, Ordering.isLE]
+    grind
+
 def Val.int! [failE -< E] : Val → ITree E Int
   | .lit (.int i) => return i
   | x => fail s!"{reprStr x} is not Int"
@@ -204,11 +221,7 @@ def Exp.denote (e : Exp) : ITree heaplangE Val :=
     let vn ← denoteYield e₁
     let n ← vn.int!
     if n ≤ 0 then fail "AllocN: count must be positive"
-    let l ← HeapE.allocN n.toNat v (by
-      -- TODO: move this proof somewhere else?
-      intro l m
-      simp [compare, compareOfLessAndEq, Ordering.isLE]
-      grind)
+    let l ← HeapE.allocN n.toNat v
     step
     return .lit (.loc l)
   | .free e => do
