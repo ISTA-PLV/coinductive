@@ -17,13 +17,12 @@ instance : LawfulLoc Loc where
   add_zero l := by
     apply Loc.ext
     simp [loc_add_n]
-  add_nat_inj l := by
-    intro i j h
-    have h' := congrArg Loc.n h
-    simp [loc_add_n] at h'
+  add_nat_inj l i j := by
+    apply Loc.ext
+    simp [loc_add_n]
     omega
-  add_pos_nle l m := by
-    simp [compare, compareOfLessAndEq, Ordering.isLE]
+  add_pos_gt l m := by
+    simp [compare, compareOfLessAndEq]
     grind
 
 def Val.int! [failE -< E] : Val → ITree E Int

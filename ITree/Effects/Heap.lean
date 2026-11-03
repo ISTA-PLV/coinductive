@@ -16,9 +16,8 @@ Offsets use `Int` so programs can express negative displacements. -/
 class LawfulLoc (Loc : Type u) [Ord Loc] extends Zero Loc, HAdd Loc Int Loc where
   decEq : DecidableEq Loc
   add_zero (l : Loc) : l + (0 : Int) = l
-  add_nat_inj (l : Loc) : Function.Injective (fun (i : Nat) => l + (i : Int))
-  add_pos_nle (l : Loc) (m : Nat) :
-    ¬(compare (l + (1 : Int) + (m : Int)) l).isLE = true
+  add_nat_inj (l : Loc) (i j : Int) : (l + i) + j = l + (i + j)
+  add_pos_gt (l : Loc) (m : Nat) : compare (l + (1 + m : Int)) l = .gt
 
 attribute [instance_reducible, instance] LawfulLoc.decEq
 
@@ -69,7 +68,7 @@ instance inhabited_free_locs [LawfulLoc Loc]
       simp [hmap.maxKey?_eq_some_iff_getKey?_eq_self_and_forall] at Hmax
       obtain ⟨_, Hmax⟩ := Hmax; refine ⟨kmax + (1 : Int), ?_⟩
       intro m _ Hmem
-      exact LawfulLoc.add_pos_nle kmax m <| Hmax _ Hmem
+      simpa [LawfulLoc.add_nat_inj, LawfulLoc.add_pos_gt] using Hmax _ Hmem
 
 def HeapE.allocN [heapE Loc Val -< E] [demonicE Loc -< E]
     [LawfulLoc Loc] (n : Nat) (v : Val) : ITree E Loc := do
