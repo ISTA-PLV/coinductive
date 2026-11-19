@@ -69,7 +69,6 @@ section exec
 variable {GE : Effect.{u}} {GR : Type u} {σ : Type v}
 variable (eh : EHandler GE GE GR σ)
 
-/-- One unfolding step of `exec`, `exec'` as coninductive occurence. -/
 inductive exec.F (exec' : ITree GE GR → σ → (ITree GE GR → σ → Prop) → Prop)
     : ITree GE GR → σ → (ITree GE GR → σ → Prop) → Prop where
   | stop t s p : p t s → exec.F exec' t s p
