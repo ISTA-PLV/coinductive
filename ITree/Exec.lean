@@ -69,13 +69,13 @@ section exec
 variable {GE : Effect.{u}} {GR : Type u} {σ : Type v}
 variable (eh : EHandler GE GE GR σ)
 
-inductive exec.F (exec : ITree GE GR → σ → (ITree GE GR → σ → Prop) → Prop)
+inductive exec.F (exec' : ITree GE GR → σ → (ITree GE GR → σ → Prop) → Prop)
     : ITree GE GR → σ → (ITree GE GR → σ → Prop) → Prop where
-  | stop t s p : p t s → exec.F exec t s p
-  | tau t s p : exec t s p → exec.F exec (.tau t) s p
+  | stop t s p : p t s → exec.F exec' t s p
+  | tau t s p : exec' t s p → exec.F exec' (.tau t) s p
   | step i k s p :
-      eh.handle i s k (λ t' s' => exec t' s' p) →
-      exec.F exec (ITree.vis i k) s p
+      eh.handle i s k (λ t' s' => exec' t' s' p) →
+      exec.F exec' (ITree.vis i k) s p
 
 theorem exec.F.mono exec₁ exec₂ p (t : ITree GE GR) s:
     exec.F eh exec₁ t s p →
